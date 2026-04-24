@@ -1,0 +1,35 @@
+OLD/
+
+# Aider
+.aider*
+!.aider.conf.yml
+# Environment
+.env
+.env.*
+!.env.example
+# OS Specific
+.DS_Store
+Thumbs.db
+desktop.ini
+# IDE Specific
+.vscode/
+.idea/
+*.swp
+*.swo
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.pytest_cache/
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+# Logs and databases
+*.log
+*.sqlite

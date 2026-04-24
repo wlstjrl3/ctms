@@ -1,0 +1,4 @@
+model: gemini/gemma-4-31b-it
+architect: true
+map-tokens: 1024
+encoding: "utf-8"
