@@ -34,7 +34,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
         if ($s['edu_state'] === '2') { $stateClass = 'badge-ongoing'; $stateText = '교육중'; }
         if ($s['edu_state'] === '3') { $stateClass = 'badge-closed'; $stateText = '교육종료'; }
     ?>
-    <div class="glass-card schedule-item" style="display: grid; grid-template-columns: 100px 1fr 150px; align-items: center; padding: 1.5rem; transition: var(--transition);">
+    <div class="glass-card schedule-item clickable-row" onclick="showDetail(<?= $s['idx_num'] ?>)" style="display: grid; grid-template-columns: 100px 1fr 150px; align-items: center; padding: 1.5rem; transition: var(--transition); cursor: pointer;">
         <div class="date-box" style="text-align: center; border-right: 1px solid var(--glass-border); padding-right: 1rem;">
             <div style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase;"><?= $month ?></div>
             <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);"><?= $day ?></div>
@@ -49,8 +49,8 @@ $base = \App\Core\App::getInstance()->getBasePath();
             <p style="color: var(--text-muted); font-size: 0.875rem;">📍 <?= htmlspecialchars($s['edu_place']) ?> | ⏰ <?= substr($s['edu_date'], 0, 16) ?></p>
         </div>
         
-        <div style="text-align: right;">
-            <button class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.875rem;" onclick="showDetail(<?= $s['idx_num'] ?>)">상세보기</button>
+        <div style="text-align: right;" class="desktop-only">
+            <button class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.875rem;">상세보기</button>
         </div>
     </div>
     <?php endforeach; if(empty($schedules)): ?>

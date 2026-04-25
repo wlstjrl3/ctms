@@ -15,43 +15,36 @@ class AuthService
         $db = App::getInstance()->db();
         $session = App::getInstance()->session();
 
-        // 1. Check office/daerigoo (from MPLUS_MEMBER_LIST with strAdmin check)
-        // Legacy logic: if it's office/daerigoo, they might be in MPLUS_MEMBER_LIST
+        // Join with parishes to get the parish_code (legacy bcode)
         $user = $db->fetch(
-            "SELECT strLoginID, strLoginPwd, strLoginName, strAdmin, bcode 
-             FROM MPLUS_MEMBER_LIST 
-             WHERE strLoginID = ? AND bitDelete = 0", 
+            "SELECT u.*, p.parish_code 
+             FROM users u
+             LEFT JOIN parishes p ON u.parish_id = p.id
+             WHERE u.login_id = ?", 
             [$userId]
         );
 
-        if ($user && $user['strLoginPwd'] === $password) {
-            $roleMap = ['1' => 'office', '2' => 'daerigoo']; // Simple mapping for now
-            $role = $roleMap[$user['strAdmin']] ?? 'bondang';
-            
-            $session->login([
-                'strLoginID'   => $user['strLoginID'],
-                'strLoginName' => $user['strLoginName'],
-                'ctms_admin'   => $role,
-                'bcode'        => $user['bcode'] ?? ''
-            ]);
-            return true;
+        // Support both hashed passwords and legacy plain-text
+        $isMatch = false;
+        if ($user) {
+            if (password_verify($password, $user['password_hash'])) {
+                $isMatch = true;
+            } elseif ($user['password_hash'] === $password) {
+                $isMatch = true;
+            }
         }
 
-        // 2. Check bondang (from ctms_user_info)
-        $bondang = $db->fetch(
-            "SELECT ctms_uid, ctms_upwd, ctms_uname, ctms_ucode 
-             FROM ctms_user_info 
-             WHERE ctms_uid = ?", 
-            [$userId]
-        );
-
-        if ($bondang && $bondang['ctms_upwd'] === $password) {
+        if ($isMatch) {
             $session->login([
-                'strLoginID'   => $bondang['ctms_uid'],
-                'strLoginName' => $bondang['ctms_uname'],
-                'ctms_admin'   => 'bondang',
-                'bcode'        => $bondang['ctms_ucode'] ?? ''
+                'strLoginID'   => $user['login_id'],
+                'strLoginName' => $user['name'],
+                'ctms_admin'   => $user['role'],
+                'bcode'        => $user['parish_code'] ?? ''
             ]);
+
+            // Update last login
+            $db->query("UPDATE users SET last_login_at = NOW() WHERE id = ?", [$user['id']]);
+            
             return true;
         }
 

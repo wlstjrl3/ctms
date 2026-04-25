@@ -25,7 +25,7 @@ class TeacherController
 
         $bcode = (string)$session->get('bcode', '');
         $page = (int)($_GET['p'] ?? 1);
-        $pageSize = (int)($_GET['pagesize'] ?? 20);
+        $pageSize = (int)($_GET['page_size'] ?? 15);
         
         $filters = [
             'search'   => $_GET['search'] ?? '',
@@ -48,6 +48,56 @@ class TeacherController
         require __DIR__ . '/../../views/layouts/header.php';
         require __DIR__ . '/../../views/pages/teachers/list.php';
         require __DIR__ . '/../../views/layouts/footer.php';
+    }
+
+    public function ajaxList(): void
+    {
+        $session = App::getInstance()->session();
+        if (!$session->isLoggedIn()) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        $bcode = (string)$session->get('bcode', '');
+        $page = (int)($_GET['p'] ?? 1);
+        $pageSize = (int)($_GET['page_size'] ?? 15);
+        
+        $filters = $_GET;
+
+        $teachers = $this->service->getTeacherList($bcode, $filters, $page, $pageSize);
+        $totalCount = $this->service->getTeacherCount($bcode, $filters);
+        
+        $loginIds = array_column($teachers, 'login_id');
+        $allAwards = $this->service->getAwardsBatch($loginIds);
+        foreach ($teachers as &$teacher) {
+            $teacher['awards'] = $allAwards[$teacher['login_id']] ?? [];
+        }
+
+        $base = App::getInstance()->getBasePath();
+        
+        // Render Rows
+        ob_start();
+        include __DIR__ . '/../../views/pages/teachers/list_rows.php';
+        $rowsHtml = ob_get_clean();
+
+        // Render Pagination
+        $pageCount = (int)ceil($totalCount / $pageSize);
+        ob_start();
+        include __DIR__ . '/../../views/layouts/pagination.php';
+        $paginationHtml = ob_get_clean();
+
+        header('Content-Type: application/json');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        echo json_encode([
+            'html' => $rowsHtml,
+            'paginationHtml' => $paginationHtml,
+            'totalCount' => $totalCount,
+            'pageCount' => $pageCount
+        ]);
+        exit;
     }
 
     public function edit(string $loginId): void
@@ -119,27 +169,70 @@ class TeacherController
             'academy'  => $_POST['academy'] ?? '1',
             'type_num' => $_POST['type_num'] ?? '5',
             'ac_edpart02' => $_POST['ac_edpart02'] ?? '',
+            'position'    => $_POST['position'] ?? '',
             'ac_edsc'     => $_POST['ac_edsc'] ?? '',
             'cs_year'     => $_POST['cs_year'] ?? '',
             'cs_month'    => $_POST['cs_month'] ?? '',
             
-            // Furlough
-            'reason1' => $_POST['reason1'] ?? '0',
-            'rsdt1'   => $_POST['rsdt1'] ?? null,
-            'rsdt2'   => $_POST['rsdt2'] ?? null,
-            'reason2' => $_POST['reason2'] ?? '0',
-            'rsdt3'   => $_POST['rsdt3'] ?? null,
-            'rsdt4'   => $_POST['rsdt4'] ?? null,
-            'reason3' => $_POST['reason3'] ?? '0',
-            'rsdt5'   => $_POST['rsdt5'] ?? null,
-            'rsdt6'   => $_POST['rsdt6'] ?? null,
+            // Furlough (Dynamic)
+            'furloughs' => [],
+            'education' => [],
+            'awards'    => []
         ];
 
-        // Education Details (1-10)
-        for ($i = 1; $i <= 10; $i++) {
-            $data["edu_title_$i"] = $_POST["edu_title_$i"] ?? '';
-            $data["edu_dt_$i"]    = $_POST["edu_dt_$i"] ?? '';
+        if (isset($_POST['furlough_reason']) && is_array($_POST['furlough_reason'])) {
+            foreach ($_POST['furlough_reason'] as $i => $reason) {
+                if ($reason !== '0' || !empty($_POST['furlough_start'][$i])) {
+                    $data['furloughs'][] = [
+                        'reason'     => $reason,
+                        'start_date' => $_POST['furlough_start'][$i] ?? null,
+                        'end_date'   => $_POST['furlough_end'][$i] ?? null
+                    ];
+                }
+            }
         }
+
+        // Education (Dynamic)
+        if (isset($_POST['edu_title']) && is_array($_POST['edu_title'])) {
+            foreach ($_POST['edu_title'] as $i => $title) {
+                if (!empty($title)) {
+                    $data['education'][] = [
+                        'title' => $title,
+                        'date'  => $_POST['edu_date'][$i] ?? null
+                    ];
+                }
+            }
+        }
+
+        // Parse awards
+        if (isset($_POST['award_year']) && is_array($_POST['award_year'])) {
+            foreach ($_POST['award_year'] as $i => $year) {
+                if (!empty($year)) {
+                    $data['awards'][] = [
+                        'tml_year' => $year,
+                        'tml'      => $_POST['award_name'][$i] ?? '',
+                        'bcode'    => (string)$session->get('bcode', '')
+                    ];
+                }
+            }
+        }
+        // Handle Photo Upload
+        $photoPath = null;
+        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['image/jpeg', 'image/png'];
+            $maxSize = 2 * 1024 * 1024; // 2MB
+            
+            if (in_array($_FILES['photo']['type'], $allowedTypes) && $_FILES['photo']['size'] <= $maxSize) {
+                $ext = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
+                $newFileName = 'teacher_' . ($loginId ?: uniqid()) . '_' . time() . '.' . $ext;
+                $uploadDir = __DIR__ . '/../../public/uploads/photos/';
+                
+                if (move_uploaded_file($_FILES['photo']['tmp_name'], $uploadDir . $newFileName)) {
+                    $photoPath = 'uploads/photos/' . $newFileName;
+                }
+            }
+        }
+        $data['photo_path'] = $photoPath;
 
         if ($mode === 'edit' && !empty($loginId)) {
             $success = $this->service->updateTeacher($loginId, $data);

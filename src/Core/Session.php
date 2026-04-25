@@ -52,9 +52,10 @@ class Session
     public function login(array $userData): void
     {
         $this->set('is_logged_in', true);
-        $this->set('user_id', $userData['strLoginID']);
-        $this->set('user_name', $userData['strLoginName']);
-        $this->set('role', $userData['ctms_admin']); // Legacy: office, daerigoo, bondang
+        $this->set('user_id', $userData['strLoginID'] ?? '');
+        $this->set('user_name', $userData['strLoginName'] ?? '');
+        $this->set('role', $userData['ctms_admin'] ?? 'bondang');
+        $this->set('bcode', $userData['bcode'] ?? '');
     }
 
     public function isLoggedIn(): bool

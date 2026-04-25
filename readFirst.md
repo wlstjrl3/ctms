@@ -1,31 +1,75 @@
-# CTMS Modern Migration Project Context
+# CTMS Modernization Project - Handover & Status
 
-이 문서는 MSSQL에서 MySQL/PHP 8.x로의 마이그레이션 진행 상황을 기록하며, 다음 세션의 인지 로드를 줄이기 위한 핵심 가이드라인입니다.
+이 문서는 다음 에이전트가 현재 진행 상황을 즉시 파악하고 작업을 이어갈 수 있도록 작성된 종합 상태 보고서입니다.
 
-## 1. 프로젝트 현재 상태 (Current Status)
-- **인증 시스템**: `AuthService` 기반 로그인 및 본당 코드(`bcode`) 세션 관리 완료.
-- **대시보드**: 월간 교육 일정 및 공지사항 시각화 완료.
-- **교사 관리 (Full Migration)**: 
-    - 교사 목록(본당교리교사) 조회 및 페이징.
-    - 4개 탭 기반의 상세 수정/등록 폼 (인적사항, 소속/휴직, 교육, 수상).
-    - 트랜잭션 기반의 다중 테이블(`bd_member_right`, `bd_member_csdate`) 업데이트 로직.
-- **통계**: Chart.js를 이용한 부서/직책/운영 현황 시각화 대시보드 구축.
-- **데이터 마이그레이션**: `bd_member_education`, `att_member_new`, `css_info_es`, `css_info_mhs` 테이블 마이그레이션 및 `TeacherService` 연동 완료.
+## 1. 최근 작업 상세 내역 (Core Accomplishments)
 
-## 2. 기술적 특징 (Technical Context)
-- **Stack**: PHP 8.x Native, MySQL 8.x, Vanilla CSS (Glassmorphism), Chart.js.
-- **Performance**: N+1 문제 해결(`getAwardsBatch`), 주요 조회 컬럼(`login_id`, `bcode`) 인덱스 최적화 완료.
-- **Base Path**: 하위 디렉토리(`ctms/public`) 호스팅 지원을 위한 동적 경로 처리(`App::getBasePath()`) 적용.
+### [Advanced UI/UX Framework]
+*   **실시간 AJAX 필터링 도입**: 모든 주요 목록(교사, 계정, 본당)에 버튼 없는 실시간 검색 기능을 구현했습니다.
+    *   사용자가 타이핑하거나 조건을 변경하면 **300ms Debounce** 후 자동으로 리스트가 갱신됩니다.
+    *   `list_rows.php`와 `pagination.php` 공통 컴포넌트를 통해 일관된 디자인과 성능을 유지합니다.
+*   **반응형 사이드바 & 햄버거 메뉴**: 태블릿 및 모바일 환경에서 자동으로 숨겨지고 토글되는 햄버거 메뉴를 구현했습니다.
+*   **고대비 토스트 알림**: 라이트/다크 테마에 따라 색상이 반전되는 고대비 글래스모피즘 토스트 시스템을 구축했습니다.
+*   **사용자 편의성(UX) 강화**:
+    *   작은 버튼 대신 **테이블 행 전체를 클릭**하여 수정 창으로 이동하도록 개선했습니다.
+    *   실수 방지를 위해 목록의 삭제 버튼을 제거하고, 수정 폼 내부 헤더로 이동시켰습니다.
 
-## 3. 남은 과제 (Next Steps) - **중요**
-1.  **교사 신규 등록 로직 완성**: 현재 `edit`은 완성되었으나 `create` 시 `login_id` 생성 규칙 및 초기 삽입 로직 보강 필요.
-2.  **교육 일정 상세**: 일정 리스트에서 '상세보기' 클릭 시 팝업 또는 상세 페이지 구현.
-3.  **보안 강화**: CSRF 토큰 적용 및 데이터 입출력 Validation 강화.
+### [Teacher & Photo Management]
+*   **사진 업로드 시스템**: `TeacherController` 및 `TeacherService`를 통해 JPG/PNG 사진 업로드 기능을 완성했습니다.
+    *   업로드 시 즉시 반영되나, "저장" 버튼을 눌러야 최종 확정됨을 안내하는 인터커넥트 팝업 로직을 포함합니다.
+*   **데이터 품질 보정 (Y2K & Format)**:
+    *   기존 DB의 **110세 이상 고령자(2000년 이후 출생자 오기입)** 문제를 해결하는 로직을 마이그레이터에 포함했습니다.
+    *   영명축일 형식을 8자리 숫자에서 `MM/DD` 형식으로 자동 변환하도록 개선했습니다.
 
-## 4. 데이터베이스 참고
-- 현재 테이블 목록: `bd_member_right`, `academy_state`, `bd_member_csdate`, `tch_tml`, `edu_schedule_new`, `ctms_user_info`, `bd_member_education`, `att_member_new`, `css_info_es`, `css_info_mhs`.
-- **상태**: 모든 핵심 테이블이 MySQL로 마이그레이션 되었으며, `TeacherService`의 방어 로직이 제거됨.
+### [System Architecture]
+*   **권한 체계 안정화**: 본당 권한 키워드를 `parish`에서 DB 실제 값인 **`bondang`**으로 표준화하여 필터링 오류를 해결했습니다.
+*   **컴포넌트 기반 렌더링**: PHP `ob_start()`를 활용한 부분 렌더링 방식으로 AJAX 응답 속도와 코드 재사용성을 극대화했습니다.
 
 ---
-*마지막 업데이트: 2026-04-25*
-*이 문서를 읽고 다음 작업을 이어서 진행하세요.*
+
+## 2. 레거시(ctmsOLD) 대비 마이그레이션 현황
+
+| 기능 영역 | 구현 상태 | 관련 파일 | 비고 |
+| :--- | :---: | :--- | :--- |
+| **실시간 교사 검색** | ✅ 완료 | `TeacherController::ajaxList` | 다중 필터(연령대, 근속 등) 지원 |
+| **사진 관리** | ✅ 완료 | `TeacherService::updatePhoto` | 실시간 프리뷰 및 서버 저장 |
+| **본당 계정 관리** | ✅ 완료 | `UserService::getUserList` | `bondang` 권한 필터링 수정 완료 |
+| **본당 코드 관리** | ✅ 완료 | `ParishService::getParishList` | 실시간 AJAX 필터링 적용 |
+| **미사 시간 설정** | ⏳ 대기 | `bondang/css_mng_time.asp` | `css_mng_info` 테이블 연동 필요 |
+| **학생/교동 관리** | ⏳ 대기 | `bondang/css_att_write_*.asp` | Phase 2 핵심 과제 |
+
+---
+
+## 3. 마이그레이션 및 데이터 보정 가이드 (Critical)
+
+실서버 DB 최종 전환 시 반드시 다음 보정 로직이 포함된 `scripts/Migrator.php`를 사용하십시오.
+
+1.  **Y2K 나이 보정**: 
+    *   `birth` 필드가 `1900`년대로 고정되어 100세가 넘게 나오는 경우, 2000년생 이후로 판단하여 연도 보정.
+2.  **영명축일 정제**:
+    *   `8자리 숫자(YYYYMMDD)` 또는 `4자리` 데이터를 `MM/DD` 형식으로 통일.
+    *   생년월일과 영명축일이 동일하게 기입된 레거시 데이터는 보정 대상입니다.
+3.  **권한(Role) 매핑**:
+    *   기존 권한 숫자를 `office`, `diocese`, `bondang` 문자열로 변환.
+
+---
+
+## 4. 향후 중점 과제 (Next Steps)
+
+1.  **학생 관리(CSS) 모듈 착수**:
+    *   초등부/중고등부 학생 정보를 통합 관리하는 `StudentService` 및 `StudentController` 구현.
+    *   학생 출석 및 성사 기록(레거시 `css_bs_add.asp`) 마이그레이션.
+2.  **본당 상세 정보 확장**:
+    *   주임/지도신부님 상세(성함, 세례명, 축일) 및 홈페이지 링크 필드 추가.
+3.  **통계 대시보드 시각화**:
+    *   `TeacherService`의 연령별/근속별 통계 데이터를 Chart.js로 시각화.
+
+---
+
+## 5. 개발자 주의 사항
+*   **AJAX 데이터 로드**: 새로운 목록 페이지 생성 시 `fetchData(page)` 함수와 `list_rows.php` 패턴을 따르십시오.
+*   **권한 확인**: `UserController.php` 등에서 권한 체크 시 `bondang` 키워드를 사용하십시오.
+*   **파일 업로드**: `public/uploads/photos/` 디렉토리의 쓰기 권한을 확인하십시오.
+
+> [!TIP]
+> 실시간 필터링 로직 수정 시 `pagination.php`가 공통으로 사용되므로, `fetchData` 함수명을 통일하는 것이 중요합니다.

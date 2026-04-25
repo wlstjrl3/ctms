@@ -35,6 +35,30 @@ if ($action === 'login') {
     (new \App\Controller\TeacherController())->save();
 } elseif ($action === 'schedule_detail') {
     (new \App\Controller\EduScheduleController())->detail();
+} elseif ($action === 'export_teachers') {
+    (new \App\Controller\ExportController())->teachers();
+} elseif ($action === 'save_user') {
+    (new \App\Controller\UserController())->save();
+} elseif ($action === 'user_delete') {
+    (new \App\Controller\UserController())->delete();
+} elseif ($action === 'save_parish') {
+    (new \App\Controller\ParishController())->save();
+} elseif ($action === 'parish_delete') {
+    (new \App\Controller\ParishController())->delete();
+} elseif ($action === 'save_vicariate') {
+    (new \App\Controller\ParishController())->saveVicariate();
+} elseif ($action === 'delete_vicariate') {
+    (new \App\Controller\ParishController())->deleteVicariate();
+} elseif ($action === 'save_district') {
+    (new \App\Controller\ParishController())->saveDistrict();
+} elseif ($action === 'delete_district') {
+    (new \App\Controller\ParishController())->deleteDistrict();
+} elseif ($action === 'ajax_teachers') {
+    (new \App\Controller\TeacherController())->ajaxList();
+} elseif ($action === 'ajax_users') {
+    (new \App\Controller\UserController())->ajaxList();
+} elseif ($action === 'ajax_parishes') {
+    (new \App\Controller\ParishController())->ajaxList();
 } else {
     switch ($page) {
         case 'login':
@@ -56,6 +80,24 @@ if ($action === 'login') {
             break;
         case 'teacher_create':
             (new \App\Controller\TeacherController())->create();
+            break;
+        case 'user_list':
+            (new \App\Controller\UserController())->index();
+            break;
+        case 'user_create':
+            (new \App\Controller\UserController())->create();
+            break;
+        case 'user_edit':
+            (new \App\Controller\UserController())->edit();
+            break;
+        case 'parish_list':
+            (new \App\Controller\ParishController())->index();
+            break;
+        case 'parish_create':
+            (new \App\Controller\ParishController())->create();
+            break;
+        case 'parish_edit':
+            (new \App\Controller\ParishController())->edit();
             break;
         case 'statistics':
             (new \App\Controller\StatisticsController())->index();

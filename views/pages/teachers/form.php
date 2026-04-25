@@ -22,7 +22,9 @@ function isChecked($val1, $val2) {
     </div>
 </div>
 
-<form id="teacherForm" action="<?= $base ?>index.php?action=save_teacher" method="POST">
+<div class="toast-container" id="toast-container"></div>
+
+<form id="teacherForm" action="<?= $base ?>index.php?action=save_teacher" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="mode" value="<?= $mode ?>">
     <input type="hidden" name="login_id" value="<?= $teacher['login_id'] ?? '' ?>">
 
@@ -31,13 +33,20 @@ function isChecked($val1, $val2) {
         <!-- Left Column: Photo & Profile Summary -->
         <aside>
             <div class="glass-card" style="text-align: center; padding: 2rem; position: sticky; top: 2rem;">
-                <div style="width: 150px; height: 180px; background: var(--bg-dark); border-radius: 12px; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--glass-border); overflow: hidden;">
-                    <?php if (!empty($teacher['strPhotoFile'])): ?>
-                        <img src="<?= $base ?>Photo/<?= $teacher['strPhotoFile'] ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                <div id="photo-container" onclick="document.getElementById('photo-input').click()" style="width: 150px; height: 180px; background: var(--bg-dark); border-radius: 12px; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--glass-border); overflow: hidden; cursor: pointer; position: relative;">
+                    <?php if (!empty($teacher['photo_path'])): ?>
+                        <img id="photo-preview" src="<?= $base ?><?= $teacher['photo_path'] ?>" style="width: 100%; height: 100%; object-fit: cover;">
                     <?php else: ?>
-                        <span style="color: var(--text-muted); font-size: 0.8rem;">사진 없음</span>
+                        <div id="photo-placeholder">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;">📷</span>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">사진 업로드</span>
+                        </div>
+                        <img id="photo-preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
                     <?php endif; ?>
+                    <div class="photo-overlay" style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 0.7rem; padding: 0.4rem; opacity: 0; transition: 0.3s; pointer-events: none;">클릭하여 변경</div>
                 </div>
+                <input type="file" id="photo-input" name="photo" accept="image/jpeg,image/png" style="display: none;" onchange="previewImage(this)">
+                
                 <h3 style="margin-bottom: 0.5rem;"><?= htmlspecialchars($teacher['name'] ?? '신규 교사') ?></h3>
                 <p style="color: var(--text-muted); font-size: 0.875rem;"><?= htmlspecialchars($teacher['login_id'] ?? '-') ?></p>
                 
@@ -45,7 +54,7 @@ function isChecked($val1, $val2) {
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
                         <span style="color: var(--text-muted);">부서</span> 
                         <span style="color: var(--primary); font-weight: 600;">
-                            <?= ['1'=>'초등', '2'=>'중고', '3'=>'대건', '4'=>'장애', '5'=>'초·중고'][$teacher['academy'] ?? ''] ?? '-' ?>
+                            <?= ['1'=>'초등', '2'=>'중고', '5'=>'초·중고', '3'=>'대건', '4'=>'장애'][$teacher['department'] ?? ''] ?? '-' ?>
                         </span>
                     </div>
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
@@ -68,7 +77,7 @@ function isChecked($val1, $val2) {
         <div class="glass-card" style="padding: 2rem;">
             <div style="display: flex; gap: 2rem; border-bottom: 1px solid var(--glass-border); margin-bottom: 2rem; overflow-x: auto;">
                 <button type="button" class="tab-btn active" onclick="showTab('basic')">인적 사항</button>
-                <button type="button" class="tab-btn" onclick="showTab('assignment')">소속 및 휴직</button>
+                <button type="button" class="tab-btn" onclick="showTab('assignment')">소속 및 수상</button>
                 <button type="button" class="tab-btn" onclick="showTab('edu_detail')">상세 교육</button>
                 <button type="button" class="tab-btn" onclick="showTab('history')">참여 이력</button>
             </div>
@@ -82,11 +91,11 @@ function isChecked($val1, $val2) {
                     </div>
                     <div class="form-group">
                         <label>세례명</label>
-                        <input type="text" name="bname" value="<?= htmlspecialchars($teacher['bname'] ?? '') ?>">
+                        <input type="text" name="bname" value="<?= htmlspecialchars($teacher['baptismal_name'] ?? '') ?>">
                     </div>
                     <div class="form-group">
-                        <label>생년월일 (YYMMDD)</label>
-                        <input type="text" name="jumin_f" value="<?= htmlspecialchars($teacher['jumin_f'] ?? '') ?>" maxlength="6">
+                        <label>생년월일 (YYYY-MM-DD)</label>
+                        <input type="date" name="jumin_f" value="<?= htmlspecialchars($teacher['birth_date'] ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>영명축일 (MM/DD)</label>
@@ -94,135 +103,188 @@ function isChecked($val1, $val2) {
                     </div>
                     <div class="form-group">
                         <label>휴대전화</label>
-                        <input type="text" name="phone2" value="<?= htmlspecialchars($teacher['phone2'] ?? '') ?>">
+                        <input type="text" name="phone2" value="<?= htmlspecialchars($teacher['mobile_phone'] ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>자택전화</label>
-                        <input type="text" name="phone1" value="<?= htmlspecialchars($teacher['strHomeTel'] ?? '') ?>">
+                        <input type="text" name="phone1" value="<?= htmlspecialchars($teacher['home_phone'] ?? '') ?>">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>이메일</label>
-                        <input type="email" name="email" value="<?= htmlspecialchars($teacher['strEmail'] ?? '') ?>">
+                        <input type="email" name="email" value="<?= htmlspecialchars($teacher['email'] ?? '') ?>">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>주소</label>
                         <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <input type="text" name="postcode" value="<?= htmlspecialchars($teacher['strHomePost'] ?? '') ?>" placeholder="우편번호">
+                            <input type="text" name="postcode" value="<?= htmlspecialchars($teacher['post_code'] ?? '') ?>" placeholder="우편번호">
                             <button type="button" class="btn" style="background: var(--bg-dark);">주소 찾기</button>
                         </div>
-                        <input type="text" name="addr1" value="<?= htmlspecialchars($teacher['strHomeAddr1'] ?? '') ?>" placeholder="기본 주소" style="margin-bottom: 0.5rem;">
-                        <input type="text" name="addr2" value="<?= htmlspecialchars($teacher['strHomeAddr2'] ?? '') ?>" placeholder="상세 주소">
+                        <input type="text" name="addr1" value="<?= htmlspecialchars($teacher['address_basic'] ?? '') ?>" placeholder="기본 주소" style="margin-bottom: 0.5rem;">
+                        <input type="text" name="addr2" value="<?= htmlspecialchars($teacher['address_detail'] ?? '') ?>" placeholder="상세 주소">
                     </div>
                 </div>
             </div>
 
-            <!-- 2. 소속 및 휴직 -->
             <div id="tab-assignment" class="tab-content" style="display: none;">
-                <h4 style="margin-bottom: 1.5rem; color: var(--primary);">📋 소속 정보</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                    <div class="form-group">
-                        <label>부서</label>
-                        <select name="academy">
-                            <option value="1" <?= isSelected($teacher['academy'], '1') ?>>초등부</option>
-                            <option value="2" <?= isSelected($teacher['academy'], '2') ?>>중고등부</option>
-                            <option value="5" <?= isSelected($teacher['academy'], '5') ?>>초·중고등부</option>
-                            <option value="3" <?= isSelected($teacher['academy'], '3') ?>>대건</option>
-                            <option value="4" <?= isSelected($teacher['academy'], '4') ?>>장애아</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>직책</label>
-                        <select name="type_num">
-                            <option value="5" <?= isSelected($teacher['type_num'], '5') ?>>평교사</option>
-                            <option value="2" <?= isSelected($teacher['type_num'], '2') ?>>교감</option>
-                            <option value="3" <?= isSelected($teacher['type_num'], '3') ?>>교무</option>
-                            <option value="4" <?= isSelected($teacher['type_num'], '4') ?>>총무</option>
-                            <option value="6" <?= isSelected($teacher['type_num'], '6') ?>>분과장</option>
-                            <option value="7" <?= isSelected($teacher['type_num'], '7') ?>>휴직교사</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>담당 학년</label>
-                        <input type="text" name="ac_edpart02" value="<?= htmlspecialchars($teacher['ac_edpart02'] ?? '') ?>" placeholder="예: 3학년">
-                    </div>
-                    <div class="form-group">
-                        <label>근속 기준 연월</label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" name="cs_year" value="<?= htmlspecialchars($teacher['cs_year'] ?? '') ?>" placeholder="YYYY" style="width: 80px;">
-                            <input type="text" name="cs_month" value="<?= htmlspecialchars($teacher['cs_month'] ?? '') ?>" placeholder="MM" style="width: 60px;">
+                <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+                    
+                    <!-- 1. 소속 정보 -->
+                    <section>
+                        <h4 style="margin-bottom: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
+                            <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">🏢</span> 소속 정보
+                        </h4>
+                        <div class="glass-card" style="padding: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                            <div class="form-group">
+                                <label>부서</label>
+                                <select name="academy">
+                                    <option value="1" <?= isSelected($teacher['department'] ?? '', 'elementary') ?>>초등부</option>
+                                    <option value="2" <?= isSelected($teacher['department'] ?? '', 'middle_high') ?>>중고등부</option>
+                                    <option value="5" <?= isSelected($teacher['department'] ?? '', 'daegun') ?>>대건</option>
+                                    <option value="3" <?= isSelected($teacher['department'] ?? '', 'disabled') ?>>장애아</option>
+                                    <option value="4" <?= isSelected($teacher['department'] ?? '', 'integrated') ?>>초·중고 통합</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>직급</label>
+                                <input type="text" name="position" value="<?= htmlspecialchars($teacher['position'] ?? '') ?>" placeholder="예: 평교사">
+                            </div>
+                            <div class="form-group">
+                                <label>근속 기준 연월</label>
+                                <div style="display: flex; gap: 0.75rem;">
+                                    <div style="flex: 1; position: relative;">
+                                        <input type="text" name="cs_year" value="<?= htmlspecialchars($teacher['cs_year'] ?? '') ?>" placeholder="YYYY" style="text-align: center;">
+                                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">년</span>
+                                    </div>
+                                    <div style="flex: 1; position: relative;">
+                                        <input type="text" name="cs_month" value="<?= htmlspecialchars($teacher['cs_month'] ?? '') ?>" placeholder="MM" style="text-align: center;">
+                                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">월</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>비고 (특이사항)</label>
-                        <textarea name="ac_edsc" rows="3"><?= htmlspecialchars($teacher['ac_edsc'] ?? '') ?></textarea>
-                    </div>
-                </div>
+                        <div class="glass-card" style="padding: 1.5rem; margin-top: 1.5rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>비고 / 기타사항 (휴직사유 등)</label>
+                                <textarea name="ac_edsc" rows="2" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.875rem;"><?= htmlspecialchars($teacher['current_grade'] ?? '') ?></textarea>
+                            </div>
+                        </div>
+                    </section>
 
-                <h4 style="margin-bottom: 1.5rem; color: var(--danger);">⏸️ 휴직 이력</h4>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <?php for($i=1; $i<=3; $i++): ?>
-                    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 1rem; align-items: center; background: var(--bg-dark); padding: 1rem; border-radius: 8px;">
-                        <select name="reason<?= $i ?>">
-                            <option value="0">선택안함</option>
-                            <option value="1" <?= isSelected($teacher["reason$i"] ?? '', '1') ?>>군복무</option>
-                            <option value="2" <?= isSelected($teacher["reason$i"] ?? '', '2') ?>>임신출산</option>
-                            <option value="3" <?= isSelected($teacher["reason$i"] ?? '', '3') ?>>병환</option>
-                            <option value="4" <?= isSelected($teacher["reason$i"] ?? '', '4') ?>>유학/연수</option>
-                            <option value="5" <?= isSelected($teacher["reason$i"] ?? '', '5') ?>>거주지이동</option>
-                        </select>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="date" name="rsdt<?= ($i*2)-1 ?>" value="<?= $teacher["rsdt".(($i*2)-1)] ?? '' ?>">
-                            <span>~</span>
-                            <input type="date" name="rsdt<?= $i*2 ?>" value="<?= $teacher["rsdt".($i*2)] ?? '' ?>">
+                    <!-- 2. 휴직 이력 -->
+                    <section>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h4 style="color: var(--danger); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
+                                <span style="background: rgba(239, 68, 68, 0.1); padding: 0.5rem; border-radius: 8px;">⏸️</span> 휴직 이력
+                            </h4>
+                            <button type="button" class="btn" onclick="addFurlough()" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2);">
+                                + 휴직 추가
+                            </button>
                         </div>
-                    </div>
-                    <?php endfor; ?>
+                        <div class="glass-card" style="padding: 1rem;">
+                            <div id="furloughs-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                                <?php 
+                                    $furloughs = $teacher['furloughs'] ?? [];
+                                    foreach ($furloughs as $f): 
+                                ?>
+                                <div class="furlough-item" style="display: grid; grid-template-columns: 200px 1fr 40px; gap: 1.5rem; align-items: center; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                                    <select name="furlough_reason[]">
+                                        <option value="0">사유 선택</option>
+                                        <option value="1" <?= isSelected($f['reason'] ?? '', '1') ?>>군복무</option>
+                                        <option value="2" <?= isSelected($f['reason'] ?? '', '2') ?>>임신출산</option>
+                                        <option value="3" <?= isSelected($f['reason'] ?? '', '3') ?>>병환</option>
+                                        <option value="4" <?= isSelected($f['reason'] ?? '', '4') ?>>유학/연수</option>
+                                        <option value="5" <?= isSelected($f['reason'] ?? '', '5') ?>>거주지이동</option>
+                                    </select>
+                                    <div style="display: flex; gap: 1rem; align-items: center;">
+                                        <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">시작</span>
+                                            <input type="date" name="furlough_start[]" value="<?= $f['start_date'] ?? '' ?>">
+                                        </div>
+                                        <span style="color: var(--text-muted);">~</span>
+                                        <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="font-size: 0.75rem; color: var(--text-muted);">종료</span>
+                                            <input type="date" name="furlough_end[]" value="<?= $f['end_date'] ?? '' ?>">
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 3. 수상 내역 -->
+                    <section>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h4 style="color: var(--accent); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
+                                <span style="background: rgba(14, 165, 233, 0.1); padding: 0.5rem; border-radius: 8px;">🏅</span> 근속상 수상 내역
+                            </h4>
+                            <button type="button" class="btn" onclick="addAward()" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(14, 165, 233, 0.1); color: var(--accent); border: 1px solid rgba(14, 165, 233, 0.2);">
+                                + 수상 추가
+                            </button>
+                        </div>
+                        <div class="glass-card" style="padding: 1.5rem;">
+                            <div id="awards-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <?php 
+                                    $awards = $teacher['awards'] ?? [];
+                                    foreach ($awards as $award): 
+                                ?>
+                                <div class="award-item" style="display: flex; gap: 0.75rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                    <div style="width: 100px; position: relative;">
+                                        <input type="text" name="award_year[]" value="<?= htmlspecialchars($award['tml_year'] ?? '') ?>" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <select name="award_name[]">
+                                            <option value="">수상 선택</option>
+                                            <?php for($y=1; $y<=30; $y++): ?>
+                                                <option value="<?= $y ?>" <?= isSelected($award['tml'] ?? '', (string)$y) ?>><?= $y ?>년 근속상</option>
+                                            <?php endfor; ?>
+                                            <option value="special" <?= isSelected($award['tml'] ?? '', 'special') ?>>특별상</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
             <!-- 3. 상세 교육 -->
             <div id="tab-edu_detail" class="tab-content" style="display: none;">
-                <h4 style="margin-bottom: 1.5rem; color: var(--primary);">📚 과목별 수료 현황 (양성교육)</h4>
-                <div class="table-container">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.8rem;">
-                                <th style="padding: 0.75rem; width: 50px;">No</th>
-                                <th style="padding: 0.75rem;">과목명</th>
-                                <th style="padding: 0.75rem;">수료년도</th>
-                                <th style="padding: 0.75rem; text-align: center;">상태</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                                $eduDetails = $teacher['edu_details'] ?? [];
-                                for($i=1; $i<=10; $i++): 
-                                    $curr = array_filter($eduDetails, fn($e) => $e['edu_count'] == $i);
-                                    $curr = !empty($curr) ? array_shift($curr) : null;
-                            ?>
-                            <tr style="border-bottom: 1px solid var(--glass-border);">
-                                <td style="padding: 0.75rem; color: var(--text-muted);"><?= $i ?></td>
-                                <td style="padding: 0.75rem;">
-                                    <input type="text" name="edu_title_<?= $i ?>" value="<?= htmlspecialchars($curr['edu_title'] ?? '') ?>" placeholder="과목명을 입력하세요">
-                                </td>
-                                <td style="padding: 0.75rem;">
-                                    <input type="text" name="edu_dt_<?= $i ?>" value="<?= htmlspecialchars($curr['edu_dt'] ?? '') ?>" placeholder="YYYY" style="width: 100px;">
-                                </td>
-                                <td style="padding: 0.75rem; text-align: center;">
-                                    <span class="badge <?= $curr ? 'badge-active' : 'badge-upcoming' ?>">
-                                        <?= $curr ? '수료완료' : '미수료' ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endfor; ?>
-                        </tbody>
-                    </table>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h4 style="color: var(--primary); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
+                        <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">📚</span> 과목별 수료 현황
+                    </h4>
+                    <button type="button" class="btn" onclick="addEducation()" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
+                        + 교육 추가
+                    </button>
+                </div>
+                
+                <div id="education-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <?php 
+                        $eduDetails = $teacher['edu_details'] ?? [];
+                        foreach ($eduDetails as $edu): 
+                    ?>
+                    <div class="edu-item glass-card" style="padding: 1rem; display: grid; grid-template-columns: 1fr 200px 40px; gap: 1.5rem; align-items: center;">
+                        <div class="form-group" style="margin: 0;">
+                            <input type="text" name="edu_title[]" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" placeholder="교육 과목명">
+                        </div>
+                        <div class="form-group" style="margin: 0; position: relative;">
+                            <input type="text" name="edu_date[]" value="<?= htmlspecialchars($edu['edu_dt'] ?? '') ?>" placeholder="YYYY-MM-DD" style="text-align: center;">
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">수료일</span>
+                        </div>
+                        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
             <!-- 4. 참여 이력 -->
             <div id="tab-history" class="tab-content" style="display: none;">
-                <h4 style="margin-bottom: 1.5rem; color: var(--primary);">🕒 교육 및 연수 참가 이력</h4>
+                <h4 style="margin-bottom: 1.5rem; color: var(--primary);">🕒 교육 및 연수 참가 이력 (자동 집계)</h4>
                 <div class="table-container">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -252,23 +314,6 @@ function isChecked($val1, $val2) {
                         </tbody>
                     </table>
                 </div>
-
-                <h4 style="margin-top: 3rem; margin-bottom: 1.5rem; color: var(--accent);">🏅 근속상 수상 내역</h4>
-                <div class="table-container">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tbody>
-                            <?php foreach ($teacher['awards'] ?? [] as $award): ?>
-                            <tr style="border-bottom: 1px solid var(--glass-border);">
-                                <td style="padding: 1rem; width: 100px;"><?= $award['tml_year'] ?>년</td>
-                                <td style="padding: 1rem; font-weight: 600;">🏅 <?= $award['tml'] ?>년 근속상</td>
-                                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;"><?= htmlspecialchars($award['tml_memo'] ?: '-') ?></td>
-                            </tr>
-                            <?php endforeach; if(empty($teacher['awards'])): ?>
-                            <tr><td colspan="3" style="padding: 2rem; text-align: center; color: var(--text-muted);">수상 내역이 없습니다.</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </div>
@@ -276,39 +321,139 @@ function isChecked($val1, $val2) {
 
 <style>
     .tab-btn {
-        background: none;
-        border: none;
-        padding: 1rem 0;
-        color: var(--text-muted);
-        font-weight: 600;
-        cursor: pointer;
-        transition: var(--transition);
-        border-bottom: 2px solid transparent;
-        white-space: nowrap;
+        background: none; border: none; padding: 1rem 0; color: var(--text-muted);
+        font-weight: 600; cursor: pointer; transition: var(--transition);
+        border-bottom: 2px solid transparent; white-space: nowrap;
     }
-    .tab-btn.active {
-        color: var(--primary);
-        border-bottom: 2px solid var(--primary);
-    }
-    .tab-btn:hover {
-        color: var(--text-main);
-    }
-    .badge {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 20px;
-        font-weight: 700;
-    }
+    .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .tab-btn:hover { color: var(--text-main); }
+    .badge { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-weight: 700; }
     .badge-active { background: rgba(16, 185, 129, 0.2); color: #10b981; }
     .badge-upcoming { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+    
+    .award-item, .furlough-item, .edu-item { transition: all 0.3s ease; }
+    .award-item:hover, .furlough-item:hover, .edu-item:hover { transform: translateY(-2px); border-color: var(--primary) !important; }
 </style>
 
 <script>
     function showTab(tabName) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        
         document.getElementById('tab-' + tabName).style.display = 'block';
-        event.currentTarget.classList.add('active');
+        if(event) event.currentTarget.classList.add('active');
     }
+
+    function addFurlough() {
+        const container = document.getElementById('furloughs-container');
+        const div = document.createElement('div');
+        div.className = 'furlough-item';
+        div.style.cssText = 'display: grid; grid-template-columns: 200px 1fr 40px; gap: 1.5rem; align-items: center; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);';
+        
+        div.innerHTML = `
+            <select name="furlough_reason[]">
+                <option value="0">사유 선택</option>
+                <option value="1">군복무</option>
+                <option value="2">임신출산</option>
+                <option value="3">병환</option>
+                <option value="4">유학/연수</option>
+                <option value="5">거주지이동</option>
+            </select>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">시작</span>
+                    <input type="date" name="furlough_start[]">
+                </div>
+                <span style="color: var(--text-muted);">~</span>
+                <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">종료</span>
+                    <input type="date" name="furlough_end[]">
+                </div>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function addAward() {
+        const container = document.getElementById('awards-container');
+        const div = document.createElement('div');
+        div.className = 'award-item';
+        div.style.cssText = 'display: flex; gap: 0.75rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--glass-border);';
+        
+        let options = '<option value="">수상 선택</option>';
+        for(let i=1; i<=30; i++) options += `<option value="${i}">${i}년 근속상</option>`;
+        options += '<option value="special">특별상</option>';
+
+        div.innerHTML = `
+            <div style="width: 100px; position: relative;">
+                <input type="text" name="award_year[]" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
+                <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
+            </div>
+            <div style="flex: 1;">
+                <select name="award_name[]">${options}</select>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function addEducation() {
+        const container = document.getElementById('education-container');
+        const div = document.createElement('div');
+        div.className = 'edu-item glass-card';
+        div.style.cssText = 'padding: 1rem; display: grid; grid-template-columns: 1fr 200px 40px; gap: 1.5rem; align-items: center;';
+        
+        div.innerHTML = `
+            <div class="form-group" style="margin: 0;">
+                <input type="text" name="edu_title[]" placeholder="교육 과목명">
+            </div>
+            <div class="form-group" style="margin: 0; position: relative;">
+                <input type="text" name="edu_date[]" placeholder="YYYY-MM-DD" style="text-align: center;">
+                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">수료일</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+        `;
+        container.appendChild(div);
+    }
+</script>
+
+<style>
+    #photo-container:hover .photo-overlay {
+        opacity: 1 !important;
+    }
+</style>
+
+<script>
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${type === 'info' ? 'ℹ️' : '⚠️'}</span> ${message}`;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('photo-preview');
+            const placeholder = document.getElementById('photo-placeholder');
+            
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            showToast('사진이 선택되었습니다. 상단의 [저장하기] 버튼을 눌러야 최종 반영됩니다.', 'info');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
 </script>
