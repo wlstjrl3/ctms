@@ -31,3 +31,6 @@ yarn-error.log*
 # Logs and databases
 *.log
 *.sqlite
+
+# Scratch scripts
+scratch/
