@@ -37,12 +37,28 @@ class Migrator {
     public function run() {
         echo "Starting Migration...\n";
         
+        // Clear modern tables first to avoid duplicates
+        $this->clearTables();
+        
         $this->migrateParishes();
         $this->migrateUsers();
         $this->migrateTeachers();
         $this->migrateAwards();
         
         echo "Migration Finished Successfully.\n";
+    }
+
+    private function clearTables() {
+        echo "- Clearing existing data...\n";
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 0");
+        $this->db->query("TRUNCATE TABLE teacher_awards");
+        $this->db->query("TRUNCATE TABLE teacher_tenure");
+        $this->db->query("TRUNCATE TABLE teacher_furloughs");
+        $this->db->query("TRUNCATE TABLE education_records");
+        $this->db->query("TRUNCATE TABLE teachers");
+        $this->db->query("TRUNCATE TABLE users");
+        $this->db->query("TRUNCATE TABLE parishes");
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 1");
     }
 
     private function migrateParishes() {
