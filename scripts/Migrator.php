@@ -10,7 +10,27 @@ class Migrator {
     private $db;
 
     public function __construct() {
-        $this->db = new PDO('mysql:host=localhost;dbname=CTMS', 'root', '');
+        // Load .env file
+        $envPath = __DIR__ . '/../.env';
+        if (file_exists($envPath)) {
+            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos(trim($line), '#') === 0) continue;
+                $parts = explode('=', $line, 2);
+                if (count($parts) === 2) {
+                    $_ENV[trim($parts[0])] = trim($parts[1]);
+                }
+            }
+        }
+
+        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+        $name = $_ENV['DB_NAME'] ?? 'CTMS';
+        $user = $_ENV['DB_USER'] ?? 'root';
+        $pass = $_ENV['DB_PASS'] ?? '';
+        $port = $_ENV['DB_PORT'] ?? '3306';
+
+        $dsn = "mysql:host={$host};dbname={$name};port={$port};charset=utf8mb4";
+        $this->db = new PDO($dsn, $user, $pass);
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
@@ -33,27 +53,44 @@ class Migrator {
         $legacy = $this->db->query("SELECT * FROM search_bondang")->fetchAll(PDO::FETCH_ASSOC);
         foreach ($legacy as $row) {
             $stmt = $this->db->prepare("INSERT IGNORE INTO parishes (parish_code, parish_name) VALUES (?, ?)");
-            $stmt->execute([$row['bcode'], $row['bname']]);
+            $stmt->execute([$row['BCODE'], $row['BONDANG']]);
         }
     }
 
     private function migrateUsers() {
         echo "- Migrating Users (Admin & Parish Accounts)...\n";
+        
+        // 1. Migrate from legacy table
         $legacy = $this->db->query("SELECT * FROM ctms_user_info")->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password_hash, name, role) VALUES (?, ?, ?, ?)");
+        
         foreach ($legacy as $row) {
             $role = 'bondang';
             $uid = $row['ctms_uid'];
             
-            if (in_array($uid, ['jsyang', 'youthet', 'swscout'])) {
+            if (in_array($uid, ['jsyang', 'youthet', 'swscout', 'admin1004'])) {
                 $role = 'casuwon';
-            } elseif (in_array($uid, ['youth-v1', 'youth-v2'])) {
+            } elseif (in_array($uid, ['youth-v1', 'youth-v2', 'youthas'])) {
                 $role = 'diocese';
             }
             
-            $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password, name, role) VALUES (?, ?, ?, ?)");
-            $name = in_array($uid, ['jsyang', 'youthet', 'swscout']) ? ($row['ctms_uname'] ?: '관리자') : $row['ctms_uname'];
+            $name = in_array($uid, ['jsyang', 'youthet', 'swscout', 'admin1004']) ? ($row['ctms_uname'] ?: '관리자') : $row['ctms_uname'];
             $stmt->execute([$uid, $row['ctms_upwd'], $name, $role]);
         }
+
+        // 2. Ensure critical accounts from legacy files are present even if not in ctms_user_info
+        $manualUsers = [
+            ['admin1004', '카숸', '전체 관리자', 'casuwon'],
+            ['youthas', '4..1', '안산대리구 관리자', 'diocese']
+        ];
+
+        foreach ($manualUsers as $user) {
+            $stmt->execute($user);
+        }
+
+        // 3. Fix roles for existing users that might have been migrated with wrong roles (if any)
+        $this->db->query("UPDATE users SET role = 'casuwon' WHERE login_id IN ('jsyang', 'youthet', 'swscout', 'admin1004')");
+        $this->db->query("UPDATE users SET role = 'diocese' WHERE login_id IN ('youth-v1', 'youth-v2', 'youthas')");
     }
 
     private function migrateTeachers() {
