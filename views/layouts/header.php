@@ -9,7 +9,7 @@ $userName = $session->get('user_name');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTMS Modern - 주일학교 교리교사 관리시스템</title>
+    <title>CTMS - 주일학교 교리교사 통합 관리 시스템</title>
     <link rel="stylesheet" href="assets/css/index.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -144,21 +144,31 @@ $userName = $session->get('user_name');
         <aside class="sidebar">
             <?php $base = \App\Core\App::getInstance()->getBasePath(); ?>
             <a href="<?= $base ?>index.php" style="text-decoration: none;">
-                <div class="logo text-gradient" style="font-size: 1.5rem; font-weight: 800; cursor: pointer;">
-                    CTMS MODERN
+                <div class="logo text-gradient" style="font-size: 1.5rem; font-weight: 800; cursor: pointer; letter-spacing: -0.5px;">
+                    CTMS
                 </div>
             </a>
 
             <div class="user-profile" style="margin-top: 0;">
-                <span class="role-badge"><?= htmlspecialchars($userRole) ?></span>
+                <?php
+                    $roleLabel = '본당';
+                    if ($userRole === 'casuwon') $roleLabel = '교구';
+                    elseif ($userRole === 'diocese') $roleLabel = '대리구';
+                ?>
+                <span class="role-badge"><?= $roleLabel ?></span>
                 <div style="font-weight: 600;"><?= htmlspecialchars($userName) ?>님</div>
-                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
-                    <button id="themeToggle" class="btn" style="padding: 0.4rem; font-size: 0.75rem; background: var(--glass-bg); color: var(--text-muted); flex: 1;">
-                        🌓 테마
-                    </button>
-                    <a href="<?= $base ?>index.php?action=logout" class="btn" style="padding: 0.4rem; font-size: 0.75rem; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); text-decoration: none; text-align: center; flex: 1;">
-                        🚪 로그아웃
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;">
+                    <a href="<?= $base ?>index.php?page=manual" class="btn" style="padding: 0.5rem; font-size: 0.8rem; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2); text-decoration: none; text-align: center; border-radius: 8px; font-weight: 600;">
+                        📖 이용 매뉴얼
                     </a>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button id="themeToggle" class="btn" style="padding: 0.4rem; font-size: 0.75rem; background: var(--glass-bg); color: var(--text-muted); flex: 1;">
+                            🌓 테마
+                        </button>
+                        <a href="<?= $base ?>index.php?action=logout" class="btn" style="padding: 0.4rem; font-size: 0.75rem; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); text-decoration: none; text-align: center; flex: 1;">
+                            🚪 로그아웃
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -202,7 +212,7 @@ $currentPage = $_GET['page'] ?? 'dashboard';
                             'user_create' => '본당 계정 등록',
                             'user_edit' => '본당 계정 수정'
                         ];
-                        echo $titles[$currentPage] ?? 'CTMS Modern';
+                        echo $titles[$currentPage] ?? 'CTMS';
                     ?>
                 </h1>
                 </div>

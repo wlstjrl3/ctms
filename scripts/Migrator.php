@@ -41,13 +41,18 @@ class Migrator {
         echo "- Migrating Users (Admin & Parish Accounts)...\n";
         $legacy = $this->db->query("SELECT * FROM ctms_user_info")->fetchAll(PDO::FETCH_ASSOC);
         foreach ($legacy as $row) {
-            $role = 'parish';
-            if ($row['ctms_uid'] === 'jsyang') $role = 'office';
+            $role = 'bondang';
+            $uid = $row['ctms_uid'];
+            
+            if (in_array($uid, ['jsyang', 'youthet', 'swscout'])) {
+                $role = 'casuwon';
+            } elseif (in_array($uid, ['youth-v1', 'youth-v2'])) {
+                $role = 'diocese';
+            }
             
             $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password, name, role) VALUES (?, ?, ?, ?)");
-            // We use ctms_uname if available, otherwise fallback to bdfather for jsyang
-            $name = ($row['ctms_uid'] === 'jsyang') ? '양진석' : $row['ctms_uname'];
-            $stmt->execute([$row['ctms_uid'], $row['ctms_upwd'], $name, $role]);
+            $name = in_array($uid, ['jsyang', 'youthet', 'swscout']) ? ($row['ctms_uname'] ?: '관리자') : $row['ctms_uname'];
+            $stmt->execute([$uid, $row['ctms_upwd'], $name, $role]);
         }
     }
 

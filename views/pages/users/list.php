@@ -37,7 +37,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <option value="">전체</option>
                 <option value="bondang">본당</option>
                 <option value="diocese">대리구</option>
-                <option value="office">사무처</option>
+                <option value="casuwon">교구</option>
             </select>
         </div>
     </div>

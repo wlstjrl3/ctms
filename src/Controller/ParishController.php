@@ -18,7 +18,7 @@ class ParishController
     private function checkPermission(): void
     {
         $session = App::getInstance()->session();
-        if (!$session->isLoggedIn() || !$session->hasPermission('office')) {
+        if (!$session->isLoggedIn() || !$session->hasPermission('casuwon')) {
             $base = App::getInstance()->getBasePath();
             header("Location: {$base}index.php?page=login&error=unauthorized");
             exit;
@@ -160,7 +160,7 @@ class ParishController
     public function ajaxList(): void
     {
         $session = App::getInstance()->session();
-        if (!$session->isLoggedIn() || !$session->hasPermission('office')) {
+        if (!$session->isLoggedIn() || !$session->hasPermission('casuwon')) {
             header('Content-Type: application/json');
             echo json_encode(['error' => 'Unauthorized']);
             exit;

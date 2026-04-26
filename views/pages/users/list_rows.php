@@ -2,8 +2,8 @@
 <?php 
     $roleLabel = '본당';
     $roleClass = '';
-    if ($u['role'] === 'office') {
-        $roleLabel = '사무처';
+    if ($u['role'] === 'casuwon') {
+        $roleLabel = '교구';
         $roleClass = 'background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);';
     } elseif ($u['role'] === 'diocese') {
         $roleLabel = '대리구';

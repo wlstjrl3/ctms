@@ -44,7 +44,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
                     <?php $currentRole = $user['role'] ?? 'bondang'; ?>
                     <option value="bondang" <?= $currentRole === 'bondang' ? 'selected' : '' ?>>본당 (일반)</option>
                     <option value="diocese" <?= $currentRole === 'diocese' ? 'selected' : '' ?>>대리구 관리자</option>
-                    <option value="office" <?= $currentRole === 'office' ? 'selected' : '' ?>>사무처 관리자</option>
+                    <option value="casuwon" <?= $currentRole === 'casuwon' ? 'selected' : '' ?>>교구 관리자</option>
                 </select>
             </div>
             <div class="form-group">

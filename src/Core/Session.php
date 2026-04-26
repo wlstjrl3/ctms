@@ -73,7 +73,7 @@ class Session
      */
     public function hasPermission(string $requiredRole): bool
     {
-        $roles = ['bondang' => 1, 'daerigoo' => 2, 'office' => 3];
+        $roles = ['bondang' => 1, 'diocese' => 2, 'casuwon' => 3];
         $currentRole = $this->getRole();
 
         if (!$currentRole || !isset($roles[$currentRole])) {

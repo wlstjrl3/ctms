@@ -23,7 +23,7 @@ return [
         'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4',
     ],
     'app' => [
-        'name' => 'CTMS Modern',
+        'name' => 'CTMS',
         'env'  => 'development',
     ]
 ];

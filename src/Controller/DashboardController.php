@@ -32,7 +32,7 @@ class DashboardController
             'applications' => $this->service->getMonthlyApplications(),
         ];
 
-        if ($role === 'office' || $role === 'daerigoo') {
+        if ($role === 'casuwon' || $role === 'diocese') {
             $data['recentLogins'] = $this->service->getRecentLogins();
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 - CTMS Modern</title>
+    <title>로그인 - CTMS</title>
     <link rel="stylesheet" href="assets/css/index.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -37,7 +37,7 @@
 <body>
     <div class="login-container">
         <div class="login-card glass-card">
-            <span class="logo text-gradient">CTMS MODERN</span>
+            <span class="logo text-gradient">CTMS</span>
             
             <?php if (isset($_GET['error'])): ?>
                 <div class="error-msg">아이디 또는 비밀번호가 일치하지 않습니다.</div>
@@ -66,7 +66,7 @@
             </div>
 
             <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.875rem;">
-                &copy; 2026 CTMS Modernization Project
+                &copy; 2026 CTMS Project
             </div>
         </div>
     </div>

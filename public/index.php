@@ -105,6 +105,9 @@ if ($action === 'login') {
         case 'edu_schedule':
             (new \App\Controller\EduScheduleController())->index();
             break;
+        case 'manual':
+            (new \App\Controller\ManualController())->index();
+            break;
         default:
             (new LoginController())->show();
             break;
