@@ -17,7 +17,7 @@ class ExportService
 
         // Headers
         fputcsv($output, [
-            'ID', '이름', '세례명', '본당코드', '생년월일', '영명축일', 
+            'ID', '이름', '세례명', '본당', '본당코드', '생년월일', '영명축일', 
             '휴대전화', '이메일', '주소', '부서', '직책', '비고', '근속년월'
         ]);
 
@@ -34,6 +34,7 @@ class ExportService
                 $t['login_id'],
                 $t['name'],
                 $t['baptismal_name'] ?? '',
+                $t['parish_name'] ?? '',
                 $t['bcode'] ?? '',
                 $t['birth_date'] ?? '',
                 $t['feast_day'] ?? '',

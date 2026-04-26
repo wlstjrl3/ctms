@@ -88,6 +88,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.8rem;">
                     <th style="padding: 1rem; width: 60px;">No</th>
                     <th style="padding: 1rem;">성명(세례명)</th>
+                    <th style="padding: 1rem;">본당</th>
                     <th style="padding: 1rem;">소속/직책</th>
                     <th style="padding: 1rem;">근속 기간</th>
                     <th style="padding: 1rem;">연락처</th>

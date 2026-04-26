@@ -12,6 +12,9 @@
         </div>
     </td>
     <td style="padding: 1rem;">
+        <div style="font-weight: 500; color: var(--text-main);"><?= htmlspecialchars($t['parish_name'] ?? '-') ?></div>
+    </td>
+    <td style="padding: 1rem;">
         <?php
             $academyMap = [
                 'elementary' => '초등', 
@@ -52,5 +55,5 @@
     </td>
 </tr>
 <?php endforeach; if(empty($teachers)): ?>
-<tr><td colspan="6" style="padding: 3rem; text-align: center; color: var(--text-muted);">검색 결과가 없습니다.</td></tr>
+<tr><td colspan="7" style="padding: 3rem; text-align: center; color: var(--text-muted);">검색 결과가 없습니다.</td></tr>
 <?php endif; ?>

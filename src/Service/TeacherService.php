@@ -241,7 +241,7 @@ class TeacherService
             $params[] = "%{$filters['search']}%";
         }
 
-        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.parish_code as bcode
+        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.parish_code as bcode, p.parish_name
                 FROM teachers t
                 LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
                 LEFT JOIN parishes p ON t.parish_id = p.id
