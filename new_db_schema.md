@@ -130,13 +130,25 @@ erDiagram
 | `search_bondang` + `ctms_user_info` | `parishes` | 본당 마스터 정보 통합 및 상세 필드 확장 |
 | `MPLUS_MEMBER_LIST` (Admin) | `users` | 시스템 관리 계정으로 정제 |
 | `bd_member_right` + `MPLUS_MEMBER_LIST` | `teachers` | 교사 인적사항 및 소속 정보 단일화 |
-| `bd_member_csdate` | `teacher_tenure` | 근속 기준 데이터 분리 유지 |
-| `bd_member_right` (reason/rsdt 컬럼) | `teacher_furloughs` | 고정 컬럼에서 1:N 이력 테이블로 정규화 |
-| `tch_tml` | `teacher_awards` | 명확한 네이밍으로 변경 |
+| `bd_member_csdate` | `teacher_tenure` | `cs_year`, `cs_month` 데이터를 통해 근속 산정 기준점 관리 |
+| `tch_tml` | `teacher_awards` | `tml`(훈격), `tml_year` 데이터를 1:N 관계로 이관 (금메달 아이콘 등 표시 데이터) |
 | `bd_member_education` (slots 1-10) | `education_records` | 고정 슬롯에서 1:N 이력 테이블로 정규화 |
 
-## 4. 향후 마이그레이션 전략
-1.  **Stage 1**: 실서버 DB 재이관 (v1 테이블 유지).
-2.  **Stage 2**: `v2` 테이블 생성 및 `Internal Migration Script` 실행 (v1 데이터를 v2로 변환 삽입).
-3.  **Stage 3**: 리뉴얼 서비스의 모델(Service 레이어)을 `v2` 테이블을 참조하도록 교체.
-4.  **Stage 4**: 안정화 후 `v1` 테이블 및 레거시 전용 컬럼 제거.
+## 4. 마이그레이션 세부 로직 (`Migrator.php`)
+
+신규 시스템으로의 전환을 위해 작성된 마이그레이터의 주요 기능은 다음과 같습니다.
+
+### 4.1 데이터 정제 및 보정
+- **Y2K 보정**: 레거시의 8자리 생년월일(`YYYYMMDD`) 데이터 중 연도가 `1900~1925` 사이인 경우 `2000~2025`로 보정하여 처리합니다.
+- **축일 형식 변환**: 4자리 문자열(`MMDD`)을 `MM-DD` 형식으로 변환하여 신규 DB의 호환성을 높였습니다.
+- **권한 매핑**: 레거시 `ctms_user_info` 및 특정 관리자 계정들을 `casuwon`, `diocese`, `bondang` 역할(Role)로 재분류합니다.
+
+### 4.2 중복 방지 및 초기화
+- **Clean Migration**: 실행 시 `clearTables()`를 통해 대상 테이블을 `TRUNCATE`하여 데이터 중복을 원천 차단합니다.
+- **ID 연동**: `login_id`를 매핑 키로 사용하여 `teachers` 테이블의 자동 생성된 `id`를 `tenure`, `awards` 테이블의 외래 키(`teacher_id`)로 정확히 연결합니다.
+
+## 5. 향후 로드맵
+1.  **Stage 1**: 실서버 DB 재이관 및 검증 (완료).
+2.  **Stage 2**: `v2` 테이블 데이터 정합성 확인 (근속, 수상 기록 등).
+3.  **Stage 3**: 리뉴얼 서비스의 모든 기능을 `v2` 스키마 기반으로 최적화.
+4.  **Stage 4**: 안정화 후 레거시 테이블 제거.

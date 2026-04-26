@@ -185,11 +185,42 @@ class Migrator {
                 $row['type_etc'] // remarks
             ]);
         }
+        $this->migrateTenure();
+    }
+
+    private function migrateTenure() {
+        echo "- Migrating Tenure Info...\n";
+        $stmt = $this->db->query("SELECT * FROM bd_member_csdate");
+        $tenures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $insertTenure = $this->db->prepare("
+            INSERT IGNORE INTO teacher_tenure (teacher_id, start_year, start_month)
+            SELECT id, ?, ? FROM teachers WHERE login_id = ?
+        ");
+
+        foreach ($tenures as $row) {
+            $insertTenure->execute([$row['cs_year'], $row['cs_month'], $row['login_id']]);
+        }
     }
 
     private function migrateAwards() {
         echo "- Migrating Awards...\n";
-        // Logic to migrate from tch_tml etc.
+        $stmt = $this->db->query("SELECT * FROM tch_tml");
+        $awards = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $insertAward = $this->db->prepare("
+            INSERT IGNORE INTO teacher_awards (teacher_id, award_type, award_year, remarks)
+            SELECT id, ?, ?, ? FROM teachers WHERE login_id = ?
+        ");
+
+        foreach ($awards as $row) {
+            $insertAward->execute([
+                $row['tml'], 
+                $row['tml_year'], 
+                $row['tml_memo'] ?? null,
+                $row['login_id']
+            ]);
+        }
     }
 }
 
