@@ -38,11 +38,11 @@ class TeacherController
         $pageCount = (int)ceil($totalCount / $pageSize);
 
         // Solve N+1: Fetch awards for all teachers in one go
-        $loginIds = array_column($teachers, 'login_id');
-        $allAwards = $this->service->getAwardsBatch($loginIds);
+        $teacherIds = array_column($teachers, 'id');
+        $allAwards = $this->service->getAwardsBatch($teacherIds);
 
         foreach ($teachers as &$teacher) {
-            $teacher['awards'] = $allAwards[$teacher['login_id']] ?? [];
+            $teacher['awards'] = $allAwards[$teacher['id']] ?? [];
         }
 
         require __DIR__ . '/../../views/layouts/header.php';
@@ -68,10 +68,10 @@ class TeacherController
         $teachers = $this->service->getTeacherList($bcode, $filters, $page, $pageSize);
         $totalCount = $this->service->getTeacherCount($bcode, $filters);
         
-        $loginIds = array_column($teachers, 'login_id');
-        $allAwards = $this->service->getAwardsBatch($loginIds);
+        $teacherIds = array_column($teachers, 'id');
+        $allAwards = $this->service->getAwardsBatch($teacherIds);
         foreach ($teachers as &$teacher) {
-            $teacher['awards'] = $allAwards[$teacher['login_id']] ?? [];
+            $teacher['awards'] = $allAwards[$teacher['id']] ?? [];
         }
 
         $base = App::getInstance()->getBasePath();

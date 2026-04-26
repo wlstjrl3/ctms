@@ -256,60 +256,83 @@ class TeacherService
     {
         $whereSql = "WHERE 1=1";
         $params = [];
+        $joinParishes = false;
+        $joinTenure = false;
+
         if (!empty($bcode)) {
             $whereSql .= " AND p.parish_code = ?";
             $params[] = $bcode;
+            $joinParishes = true;
         }
+
         if (!empty($filters['name'])) {
             $whereSql .= " AND t.name LIKE ?";
             $params[] = "%{$filters['name']}%";
         }
+
         if (!empty($filters['bname'])) {
             $whereSql .= " AND t.baptismal_name LIKE ?";
             $params[] = "%{$filters['bname']}%";
         }
+
         if (!empty($filters['dept'])) {
             $whereSql .= " AND t.department = ?";
             $params[] = $filters['dept'];
         }
+
         if (!empty($filters['pos'])) {
             $whereSql .= " AND t.position LIKE ?";
             $params[] = "%{$filters['pos']}%";
         }
+
         if (!empty($filters['phone'])) {
             $whereSql .= " AND (t.mobile_phone LIKE ? OR t.home_phone LIKE ?)";
             $params[] = "%{$filters['phone']}%";
             $params[] = "%{$filters['phone']}%";
         }
+
         if (!empty($filters['age_min'])) {
             $yearLimit = date('Y') - (int)$filters['age_min'];
             $whereSql .= " AND t.birth_date <= ?";
             $params[] = "{$yearLimit}-12-31";
         }
+
         if (!empty($filters['age_max'])) {
             $yearLimit = date('Y') - (int)$filters['age_max'];
             $whereSql .= " AND t.birth_date >= ?";
             $params[] = "{$yearLimit}-01-01";
         }
+
         if (!empty($filters['tenure_min'])) {
             $yearLimit = date('Y') - (int)$filters['tenure_min'];
             $whereSql .= " AND tt.start_year <= ?";
             $params[] = $yearLimit;
+            $joinTenure = true;
         }
+
         if (!empty($filters['tenure_max'])) {
             $yearLimit = date('Y') - (int)$filters['tenure_max'];
             $whereSql .= " AND tt.start_year >= ?";
             $params[] = $yearLimit;
+            $joinTenure = true;
         }
+
         if (!empty($filters['search']) && !empty($filters['category'])) {
             $field = $filters['category'] === 'name' ? 't.name' : 't.login_id';
             $whereSql .= " AND {$field} LIKE ?";
             $params[] = "%{$filters['search']}%";
         }
-        $sql = "SELECT COUNT(*) as total FROM teachers t 
-                LEFT JOIN parishes p ON t.parish_id = p.id 
-                LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
-                {$whereSql}";
+
+        $sql = "SELECT COUNT(*) as total FROM teachers t ";
+        if ($joinParishes) {
+            $sql .= " LEFT JOIN parishes p ON t.parish_id = p.id ";
+        }
+        if ($joinTenure) {
+            $sql .= " LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id ";
+        }
+        
+        $sql .= $whereSql;
+        
         $result = $this->db->fetch($sql, $params);
         return (int)($result['total'] ?? 0);
     }
@@ -347,22 +370,21 @@ class TeacherService
         return $this->db->fetchAll($sql, [$loginId]);
     }
 
-    public function getAwardsBatch(array $loginIds): array
+    public function getAwardsBatch(array $teacherIds): array
     {
-        if (empty($loginIds)) return [];
+        if (empty($teacherIds)) return [];
         
-        $placeholders = implode(',', array_fill(0, count($loginIds), '?'));
-        $sql = "SELECT t.login_id, ta.award_year as tml_year, ta.award_type as tml 
-                FROM teacher_awards ta
-                JOIN teachers t ON ta.teacher_id = t.id
-                WHERE t.login_id IN ({$placeholders}) 
-                ORDER BY ta.award_year ASC";
+        $placeholders = implode(',', array_fill(0, count($teacherIds), '?'));
+        $sql = "SELECT teacher_id, award_year as tml_year, award_type as tml 
+                FROM teacher_awards 
+                WHERE teacher_id IN ({$placeholders}) 
+                ORDER BY award_year ASC";
         
-        $results = $this->db->fetchAll($sql, $loginIds);
+        $results = $this->db->fetchAll($sql, $teacherIds);
         
         $grouped = [];
         foreach ($results as $row) {
-            $grouped[$row['login_id']][] = $row;
+            $grouped[$row['teacher_id']][] = $row;
         }
         
         return $grouped;

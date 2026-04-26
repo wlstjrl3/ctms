@@ -31,6 +31,7 @@ try {
     addIndex($db, 'teachers', 'idx_teachers_status_dept', 'status, department');
     addIndex($db, 'teachers', 'idx_teachers_mobile', 'mobile_phone');
     addIndex($db, 'teachers', 'idx_teachers_bname', 'baptismal_name');
+    addIndex($db, 'teachers', 'idx_teachers_parish_name', 'parish_id, name');
 
     // 2. Teacher Tenure Table
     addIndex($db, 'teacher_tenure', 'idx_tenure_start_year', 'start_year');
