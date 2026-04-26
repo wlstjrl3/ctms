@@ -25,8 +25,11 @@ class TeacherService
             if (!$teacher) throw new \Exception("Teacher not found");
 
             // 1. Get parish_id
-            $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode'] ?? '']);
-            $parishId = $parish['id'] ?? null;
+            $parishId = $data['parish_id'] ?? null;
+            if (!$parishId && !empty($data['bcode'])) {
+                $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
+                $parishId = $parish['id'] ?? null;
+            }
 
             // 2. Update teachers (Main Profile)
             $sqlTeacher = "UPDATE teachers 
@@ -111,8 +114,11 @@ class TeacherService
 
         try {
             $loginId = 'tmp' . date('YmdHis') . str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
-            $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode'] ?? '']);
-            $parishId = $parish['id'] ?? null;
+            $parishId = $data['parish_id'] ?? null;
+            if (!$parishId && !empty($data['bcode'])) {
+                $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
+                $parishId = $parish['id'] ?? null;
+            }
 
             $sqlTeacher = "INSERT INTO teachers (
                 parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email,

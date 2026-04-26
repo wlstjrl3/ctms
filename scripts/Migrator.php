@@ -186,6 +186,34 @@ class Migrator {
             ]);
         }
         $this->migrateTenure();
+        $this->migrateEducation();
+    }
+
+    private function migrateEducation() {
+        echo "- Migrating Education Records...\n";
+        $stmt = $this->db->query("SELECT * FROM bd_member_education");
+        $eduData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $insertCourse = $this->db->prepare("INSERT IGNORE INTO education_courses (course_name, category) VALUES (?, 'General')");
+        $insertRecord = $this->db->prepare("
+            INSERT IGNORE INTO education_records (teacher_id, course_id, completion_date, status)
+            SELECT t.id, c.id, ?, 'Completed'
+            FROM teachers t
+            JOIN education_courses c ON c.course_name = ?
+            WHERE t.login_id = ?
+        ");
+
+        foreach ($eduData as $row) {
+            // Ensure course exists
+            $insertCourse->execute([$row['edu_title']]);
+            
+            // Insert record
+            $insertRecord->execute([
+                $row['edu_dt'],
+                $row['edu_title'],
+                $row['login_id']
+            ]);
+        }
     }
 
     private function migrateTenure() {

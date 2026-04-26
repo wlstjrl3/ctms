@@ -133,7 +133,18 @@ function isChecked($val1, $val2) {
                         <h4 style="margin-bottom: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
                             <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">🏢</span> 소속 정보
                         </h4>
-                        <div class="glass-card" style="padding: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                        <div class="glass-card" style="padding: 2rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                            <div class="form-group">
+                                <label>소속 본당</label>
+                                <select name="parish_id">
+                                    <option value="">본당 선택</option>
+                                    <?php foreach ($parishes as $p): ?>
+                                        <option value="<?= $p['id'] ?>" <?= isSelected($teacher['parish_id'] ?? '', $p['id']) ?>>
+                                            [<?= htmlspecialchars($p['diocese_name'] ?? '') ?>] <?= htmlspecialchars($p['parish_name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="form-group">
                                 <label>부서</label>
                                 <select name="academy">
@@ -144,6 +155,8 @@ function isChecked($val1, $val2) {
                                     <option value="4" <?= isSelected($teacher['department'] ?? '', 'integrated') ?>>초·중고 통합</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="glass-card" style="padding: 2rem; margin-top: 1.5rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
                             <div class="form-group">
                                 <label>직급</label>
                                 <input type="text" name="position" value="<?= htmlspecialchars($teacher['position'] ?? '') ?>" placeholder="예: 평교사">

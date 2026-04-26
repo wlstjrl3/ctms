@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Core\App;
 use App\Service\TeacherService;
+use App\Service\ParishService;
 
 class TeacherController
 {
@@ -114,6 +115,9 @@ class TeacherController
             exit;
         }
 
+        $parishService = new ParishService();
+        $parishes = $parishService->getParishList([], 1, 500); // Fetch all for select
+
         $teacher['awards'] = $this->service->getAwards($loginId);
         $teacher['edu_details'] = $this->service->getEducationDetails($loginId);
         $teacher['participation'] = $this->service->getParticipationHistory($loginId);
@@ -138,6 +142,9 @@ class TeacherController
         $title = '교사 신규 등록';
         $teacher = []; // Empty for creation
 
+        $parishService = new ParishService();
+        $parishes = $parishService->getParishList([], 1, 500);
+
         require __DIR__ . '/../../views/layouts/header.php';
         require __DIR__ . '/../../views/pages/teachers/form.php';
         require __DIR__ . '/../../views/layouts/footer.php';
@@ -156,8 +163,9 @@ class TeacherController
 
         // Comprehensive data mapping
         $data = [
-            'name'     => $_POST['name'] ?? '',
-            'bname'    => $_POST['bname'] ?? '',
+            'name'      => $_POST['name'] ?? '',
+            'parish_id' => $_POST['parish_id'] ?? null,
+            'bname'     => $_POST['bname'] ?? '',
             'jumin_f'  => $_POST['jumin_f'] ?? '',
             'bday'     => $_POST['bday'] ?? '',
             'phone1'   => $_POST['phone1'] ?? '',
