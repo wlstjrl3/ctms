@@ -24,28 +24,25 @@ class ParishService
         $params = [];
 
         if (!empty($filters['name'])) {
-            $where .= " AND p.parish_name LIKE ?";
+            $where .= " AND parish_name LIKE ?";
             $params[] = "%{$filters['name']}%";
         }
         if (!empty($filters['parish_code'])) {
-            $where .= " AND p.parish_code LIKE ?";
+            $where .= " AND parish_code LIKE ?";
             $params[] = "%{$filters['parish_code']}%";
         }
         if (!empty($filters['gcode'])) {
-            $where .= " AND v.code = ?";
+            $where .= " AND diocese_code = ?";
             $params[] = $filters['gcode'];
         }
         if (!empty($filters['jcode'])) {
-            $where .= " AND d.code = ?";
+            $where .= " AND district_code = ?";
             $params[] = $filters['jcode'];
         }
 
-        $sql = "SELECT p.*, v.name as diocese_name, v.code as diocese_code, d.name as district_name, d.code as district_code 
-                FROM parishes p
-                LEFT JOIN districts d ON p.district_id = d.id
-                LEFT JOIN vicariates v ON d.vicariate_id = v.id
+        $sql = "SELECT * FROM parishes 
                 {$where} 
-                ORDER BY v.code ASC, d.code ASC, p.parish_code ASC 
+                ORDER BY diocese_code ASC, district_code ASC, parish_code ASC 
                 LIMIT {$pageSize} OFFSET {$offset}";
         return $this->db->fetchAll($sql, $params);
     }

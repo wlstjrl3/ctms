@@ -6,40 +6,42 @@
 
 ```mermaid
 erDiagram
+    vicariates ||--o{ districts : "contains"
+    districts ||--o{ parishes : "belongs_to"
     parishes ||--o{ users : "belongs_to"
     parishes ||--o{ teachers : "belongs_to"
-    parishes ||--o{ mass_schedules : "manages"
     
     teachers ||--|| teacher_tenure : "has"
-    teachers ||--o{ teacher_furloughs : "history"
     teachers ||--o{ teacher_awards : "awards"
     teachers ||--o{ education_records : "completions"
     
-    education_courses ||--o{ education_schedules : "offers"
-    education_schedules ||--o{ education_records : "sessions"
+    education_courses ||--o{ education_records : "course_info"
 ```
 
 ## 2. 주요 테이블 상세 설계
 
 ### [A] 조직 및 계정 (Organizations & Accounts)
 
+#### 0. `vicariates` (대리구 마스터)
+- `id`: INT PK AI
+- `name`: VARCHAR (대리구명)
+- `code`: VARCHAR UNIQUE (대리구코드: V1, V2 등)
+
+#### 0.1 `districts` (지구 마스터)
+- `id`: INT PK AI
+- `vicariate_id`: INT FK (vicariates.id)
+- `name`: VARCHAR (지구명)
+- `code`: VARCHAR UNIQUE (지구코드: A, B 등)
+
 #### 1. `parishes` (본당 마스터)
 기존 `search_bondang`과 `ctms_user_info`의 상세 정보를 통합합니다.
 - `id`: INT PK AI
-- `diocese_name`: VARCHAR (대리구명)
-- `diocese_code`: VARCHAR (대리구코드)
-- `district_name`: VARCHAR (지구명)
-- `district_code`: VARCHAR (지구코드)
+- `district_id`: INT FK (districts.id)
 - `parish_name`: VARCHAR (본당명)
 - `parish_code`: VARCHAR UNIQUE (본당코드)
-- `pastor_name`: VARCHAR (주임신부)
-- `pastor_baptismal_name`: VARCHAR (세례명)
-- `pastor_feast_day`: VARCHAR (축일)
-- `spiritual_director_name`: VARCHAR (지도신부)
-- `homepage_url`: VARCHAR
-- `cafe_url`: VARCHAR
+- `diocese_name`: VARCHAR (대리구명 - 호환용)
+- `district_name`: VARCHAR (지구명 - 호환용)
 - `address_basic`: VARCHAR
-- `address_detail`: VARCHAR
 - `phone`: VARCHAR
 - `fax`: VARCHAR
 
@@ -49,77 +51,46 @@ erDiagram
 - `login_id`: VARCHAR UNIQUE
 - `password_hash`: VARCHAR (보안 강화)
 - `name`: VARCHAR
-- `role`: ENUM ('office', 'diocese', 'bondang')
-- `last_login_at`: DATETIME
-- `created_at`: DATETIME
+- `role`: ENUM ('casuwon', 'diocese', 'bondang')
 
 ---
 
 ### [B] 교리교사 관리 (Teacher Management)
 
 #### 3. `teachers` (교사 프로필)
-`bd_member_right`와 `MPLUS_MEMBER_LIST`를 통합합니다.
 - `id`: INT PK AI
 - `parish_id`: INT FK (parishes.id)
-- `login_id`: VARCHAR UNIQUE (계정 연동 키)
 - `name`: VARCHAR
 - `baptismal_name`: VARCHAR (세례명)
-- `feast_day`: VARCHAR (축일)
-- `birth_date`: DATE (생년월일)
-- `gender`: ENUM ('M', 'F')
-- `mobile_phone`: VARCHAR
-- `home_phone`: VARCHAR
-- `email`: VARCHAR
-- `post_code`: VARCHAR
-- `address_basic`: VARCHAR
-- `address_detail`: VARCHAR
-- `photo_path`: VARCHAR
-- `department`: ENUM ('elementary', 'middle_high', 'daegun', 'disabled', 'integrated')
-- `position`: VARCHAR (직책: 평교사, 교감 등)
+- `birth_date`: DATE
 - `status`: ENUM ('active', 'on_leave', 'retired')
-- `current_grade`: VARCHAR (담당 학년)
-- `remarks`: TEXT
-- `created_at`: DATETIME
-- `updated_at`: DATETIME
 
 #### 4. `teacher_tenure` (근속 정보)
 - `teacher_id`: INT PK FK (teachers.id)
-- `start_year`: INT (근속 기준 연)
-- `start_month`: INT (근속 기준 월)
-- `offset_months`: INT (가감 월수)
+- `start_year`: INT
+- `start_month`: INT
+- `offset_months`: INT
 
-#### 5. `teacher_furloughs` (휴직 이력 - 1:N 정규화)
+#### 5. `teacher_awards` (수상 이력)
 - `id`: INT PK AI
 - `teacher_id`: INT FK (teachers.id)
-- `reason`: VARCHAR
-- `start_date`: DATE
-- `end_date`: DATE
-- `remarks`: VARCHAR
-
-#### 6. `teacher_awards` (수상 이력 - 1:N 정규화)
-- `id`: INT PK AI
-- `teacher_id`: INT FK (teachers.id)
-- `award_type`: VARCHAR (근속상 등)
+- `award_type`: VARCHAR
 - `award_year`: INT
-- `remarks`: VARCHAR
 
 ---
 
-### [C] 교육 및 통계 (Education & Statistics)
+### [C] 교육 기록 (Education Records)
 
-#### 7. `education_courses` (교육 과정)
+#### 6. `education_courses` (교육 과정)
 - `id`: INT PK AI
-- `course_name`: VARCHAR
-- `category`: VARCHAR (양성교육, 연수 등)
+- `course_name`: VARCHAR UNIQUE
+- `category`: VARCHAR
 
-#### 8. `education_records` (수료 기록)
-`bd_member_education`의 10개 슬롯 구조를 정규화합니다.
+#### 7. `education_records` (수료 기록)
 - `id`: INT PK AI
 - `teacher_id`: INT FK (teachers.id)
 - `course_id`: INT FK (education_courses.id)
 - `completion_year`: INT
-- `completion_date`: DATE
-- `status`: VARCHAR (수료, 미수료)
 
 ---
 
@@ -127,28 +98,25 @@ erDiagram
 
 | 기존 테이블 (v1) | 신규 테이블 (v2) | 주요 변경 사항 |
 | :--- | :--- | :--- |
-| `search_bondang` + `ctms_user_info` | `parishes` | 본당 마스터 정보 통합 및 상세 필드 확장 |
-| `MPLUS_MEMBER_LIST` (Admin) | `users` | 시스템 관리 계정으로 정제 |
-| `bd_member_right` + `MPLUS_MEMBER_LIST` | `teachers` | 교사 인적사항 및 소속 정보 단일화 |
-| `bd_member_csdate` | `teacher_tenure` | `cs_year`, `cs_month` 데이터를 통해 근속 산정 기준점 관리 |
-| `tch_tml` | `teacher_awards` | `tml`(훈격), `tml_year` 데이터를 1:N 관계로 이관 (금메달 아이콘 등 표시 데이터) |
-| `bd_member_education` (slots 1-10) | `education_records` | 고정 슬롯에서 1:N 이력 테이블로 정규화 |
+| `search_bondang` | `parishes`, `vicariates`, `districts` | 조직 체계 정규화 및 자동 생성 |
+| `ctms_user_info` | `users` | `ctms_ucode`를 사용한 정확한 본당 매핑 |
+| `bd_member_right` | `teachers` | 교사 기본 정보 이관 |
+| `bd_member_csdate` | `teacher_tenure` | 근속 산정 기준 데이터 |
+| `tch_tml` | `teacher_awards` | 수상 이력 정규화 |
+| `bd_member_education` | `education_records` | 슬롯 구조를 1:N 이력 구조로 변환 |
 
 ## 4. 마이그레이션 세부 로직 (`Migrator.php`)
 
-신규 시스템으로의 전환을 위해 작성된 마이그레이터의 주요 기능은 다음과 같습니다.
+### 4.1 조직 및 계정 연결
+- **조직 자동 생성**: 본당 데이터를 분석하여 대리구/지구 마스터 정보를 자동으로 채우고 관계를 설정합니다.
+- **계정-본당 매핑**: `ctms_ucode`를 매핑 키로 사용하여 본당 계정의 소속을 정확히 지정합니다.
 
-### 4.1 데이터 정제 및 보정
-- **Y2K 보정**: 레거시의 8자리 생년월일(`YYYYMMDD`) 데이터 중 연도가 `1900~1925` 사이인 경우 `2000~2025`로 보정하여 처리합니다.
-- **축일 형식 변환**: 4자리 문자열(`MMDD`)을 `MM-DD` 형식으로 변환하여 신규 DB의 호환성을 높였습니다.
-- **권한 매핑**: 레거시 `ctms_user_info` 및 특정 관리자 계정들을 `casuwon`, `diocese`, `bondang` 역할(Role)로 재분류합니다.
+### 4.2 데이터 무결성 보장
+- **Collation**: JOIN 시 발생할 수 있는 콜레이션 오류를 `COLLATE` 문으로 해결했습니다.
+- **중복 방지**: 교육 과정 및 지구 코드 등에 `UNIQUE` 제약 조건을 설정하고 `REPLACE INTO`를 활용합니다.
+- **Y2K 보정**: 1900년대 데이터를 2000년대로 자동 보정 처리합니다.
 
-### 4.2 중복 방지 및 초기화
-- **Clean Migration**: 실행 시 `clearTables()`를 통해 대상 테이블을 `TRUNCATE`하여 데이터 중복을 원천 차단합니다.
-- **ID 연동**: `login_id`를 매핑 키로 사용하여 `teachers` 테이블의 자동 생성된 `id`를 `tenure`, `awards` 테이블의 외래 키(`teacher_id`)로 정확히 연결합니다.
-
-## 5. 향후 로드맵
-1.  **Stage 1**: 실서버 DB 재이관 및 검증 (완료).
-2.  **Stage 2**: `v2` 테이블 데이터 정합성 확인 (근속, 수상 기록 등).
-3.  **Stage 3**: 리뉴얼 서비스의 모든 기능을 `v2` 스키마 기반으로 최적화.
-4.  **Stage 4**: 안정화 후 레거시 테이블 제거.
+## 5. 최종 점검 사항
+- 관리자 계정: `admin1004` / `casuwon`
+- 본당 검색: 모달 창 기반 AJAX 통합 검색 적용 완료
+- 근속/수상: 탭 메뉴에서 정상 노출 확인 완료

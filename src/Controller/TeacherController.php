@@ -24,7 +24,9 @@ class TeacherController
             exit;
         }
 
-        $bcode = (string)$session->get('bcode', '');
+        // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
+        $role = $session->getRole();
+        $bcode = ($role === 'bondang') ? (string)$session->get('bcode', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
         
@@ -60,7 +62,9 @@ class TeacherController
             exit;
         }
 
-        $bcode = (string)$session->get('bcode', '');
+        // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
+        $role = $session->getRole();
+        $bcode = ($role === 'bondang') ? (string)$session->get('bcode', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
         

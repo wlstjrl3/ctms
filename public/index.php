@@ -59,6 +59,8 @@ if ($action === 'login') {
     (new \App\Controller\UserController())->ajaxList();
 } elseif ($action === 'ajax_parishes') {
     (new \App\Controller\ParishController())->ajaxList();
+} elseif ($action === 'parish_search') {
+    (new \App\Controller\ParishController())->ajaxSearch();
 } else {
     switch ($page) {
         case 'login':

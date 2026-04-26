@@ -136,14 +136,20 @@ function isChecked($val1, $val2) {
                         <div class="glass-card" style="padding: 2rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
                             <div class="form-group">
                                 <label>소속 본당</label>
-                                <select name="parish_id">
-                                    <option value="">본당 선택</option>
-                                    <?php foreach ($parishes as $p): ?>
-                                        <option value="<?= $p['id'] ?>" <?= isSelected($teacher['parish_id'] ?? '', $p['id']) ?>>
-                                            [<?= htmlspecialchars($p['diocese_name'] ?? '') ?>] <?= htmlspecialchars($p['parish_name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <div style="display: grid; grid-template-columns: 1fr 100px; gap: 0.5rem;">
+                                    <?php 
+                                        $currentParishName = '';
+                                        foreach ($parishes as $p) {
+                                            if ((string)$p['id'] === (string)($teacher['parish_id'] ?? '')) {
+                                                $currentParishName = "[" . ($p['diocese_name'] ?? '') . "] " . $p['parish_name'];
+                                                break;
+                                            }
+                                        }
+                                    ?>
+                                    <input type="text" id="parish_name_display" value="<?= htmlspecialchars($currentParishName) ?>" readonly placeholder="본당을 검색하세요" style="background: var(--bg-dark); cursor: default;">
+                                    <input type="hidden" name="parish_id" id="parish_id_input" value="<?= htmlspecialchars((string)($teacher['parish_id'] ?? '')) ?>">
+                                    <button type="button" class="btn" onclick="openParishModal()" style="background: var(--primary); color: white;">검색</button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>부서</label>
@@ -449,24 +455,92 @@ function showToast(message, type = 'info') {
         toast.classList.add('fade-out');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
-}
-
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const preview = document.getElementById('photo-preview');
             const placeholder = document.getElementById('photo-placeholder');
-            
             preview.src = e.target.result;
             preview.style.display = 'block';
-            if (placeholder) {
-                placeholder.style.display = 'none';
-            }
-            
+            if (placeholder) placeholder.style.display = 'none';
             showToast('사진이 선택되었습니다. 상단의 [저장하기] 버튼을 눌러야 최종 반영됩니다.', 'info');
         }
         reader.readAsDataURL(input.files[0]);
     }
 }
+</script>
+
+<!-- Parish Search Modal -->
+<div id="parishModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 500px; max-width: 90%; padding: 2rem; position: relative;">
+        <button type="button" onclick="closeParishModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h2 style="margin-bottom: 1.5rem;">본당 검색</h2>
+        
+        <div class="form-group">
+            <input type="text" id="parish_search_keyword" placeholder="본당명 또는 대리구명 입력" onkeyup="searchParish(this.value)" autofocus style="width: 100%; padding: 1rem; background: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-main);">
+        </div>
+
+        <div id="parish_search_results" style="max-height: 300px; overflow-y: auto; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <!-- Results will appear here -->
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let parishSearchTimeout = null;
+
+    function openParishModal() {
+        const modal = document.getElementById('parishModal');
+        modal.style.display = 'flex';
+        document.getElementById('parish_search_keyword').focus();
+    }
+
+    function closeParishModal() {
+        document.getElementById('parishModal').style.display = 'none';
+    }
+
+    function searchParish(keyword) {
+        clearTimeout(parishSearchTimeout);
+        parishSearchTimeout = setTimeout(() => {
+            if (keyword.length < 1) {
+                document.getElementById('parish_search_results').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>';
+                return;
+            }
+
+            fetch(`index.php?action=parish_search&keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('parish_search_results');
+                    if (data.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색 결과가 없습니다</p>';
+                        return;
+                    }
+
+                    container.innerHTML = data.map(p => `
+                        <div class="search-result-item" onclick="selectParish(${p.id}, '${p.parish_name}', '${p.diocese_name || ''}')" style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent;">
+                            <div style="font-weight: 600; color: var(--primary);">[${p.diocese_name || '대리구 없음'}] ${p.parish_name}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">${p.district_name || ''}</div>
+                        </div>
+                    `).join('');
+                });
+        }, 300);
+    }
+
+    function selectParish(id, name, diocese) {
+        document.getElementById('parish_id_input').value = id;
+        document.getElementById('parish_name_display').value = `[${diocese}] ${name}`;
+        closeParishModal();
+    }
+
+    // Add CSS for hover
+    const style = document.createElement('style');
+    style.textContent = `
+        .search-result-item:hover {
+            background: rgba(79, 70, 229, 0.1) !important;
+            border-color: var(--primary) !important;
+        }
+    `;
+    document.head.appendChild(style);
 </script>

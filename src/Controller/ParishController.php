@@ -196,4 +196,26 @@ class ParishController
         ]);
         exit;
     }
+
+    public function ajaxSearch(): void
+    {
+        $session = App::getInstance()->session();
+        if (!$session->isLoggedIn()) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        $keyword = $_GET['keyword'] ?? '';
+        $sql = "SELECT id, parish_name, diocese_name, district_name 
+                FROM parishes 
+                WHERE parish_name LIKE ? OR diocese_name LIKE ? OR district_name LIKE ?
+                LIMIT 20";
+        
+        $results = $this->service->getDb()->fetchAll($sql, ["%{$keyword}%", "%{$keyword}%", "%{$keyword}%"]);
+
+        header('Content-Type: application/json');
+        echo json_encode($results);
+        exit;
+    }
 }

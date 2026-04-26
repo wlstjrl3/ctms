@@ -37,15 +37,52 @@ class Migrator {
     public function run() {
         echo "Starting Migration...\n";
         
-        // Clear modern tables first to avoid duplicates
+        // 1. Schema Updates
+        $this->updateSchema();
+        
+        // 2. Clear modern tables first to avoid duplicates
         $this->clearTables();
         
+        // 3. Data Migration
         $this->migrateParishes();
         $this->migrateUsers();
         $this->migrateTeachers();
         $this->migrateAwards();
         
         echo "Migration Finished Successfully.\n";
+    }
+
+    private function updateSchema() {
+        echo "- Updating Schema (Roles and Tables)...\n";
+        
+        // Update User Roles ENUM
+        $this->db->query("ALTER TABLE users MODIFY COLUMN role ENUM('office', 'casuwon', 'diocese', 'bondang') DEFAULT 'bondang'");
+        $this->db->query("UPDATE users SET role = 'casuwon' WHERE role = 'office'");
+        $this->db->query("ALTER TABLE users MODIFY COLUMN role ENUM('casuwon', 'diocese', 'bondang') DEFAULT 'bondang'");
+
+        // Create vicariates table
+        $this->db->query("CREATE TABLE IF NOT EXISTS vicariates (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            code VARCHAR(20) UNIQUE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Create districts table
+        $this->db->query("CREATE TABLE IF NOT EXISTS districts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            vicariate_id INT NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            code VARCHAR(20) UNIQUE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vicariate_id) REFERENCES vicariates(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Add district_id to parishes if not exists
+        $columns = $this->db->query("SHOW COLUMNS FROM parishes LIKE 'district_id'")->fetchAll();
+        if (empty($columns)) {
+            $this->db->query("ALTER TABLE parishes ADD COLUMN district_id INT AFTER id");
+        }
     }
 
     private function clearTables() {
@@ -55,22 +92,67 @@ class Migrator {
         $this->db->query("TRUNCATE TABLE teacher_tenure");
         $this->db->query("TRUNCATE TABLE teacher_furloughs");
         $this->db->query("TRUNCATE TABLE education_records");
+        $this->db->query("TRUNCATE TABLE education_courses");
         $this->db->query("TRUNCATE TABLE teachers");
         $this->db->query("TRUNCATE TABLE users");
         $this->db->query("TRUNCATE TABLE parishes");
+        
+        // Ensure parish_code is UNIQUE to prevent duplications and allow REPLACE INTO
+        $this->db->query("ALTER TABLE parishes MODIFY parish_code VARCHAR(10) UNIQUE");
+        
+        // Ensure course_name is UNIQUE to prevent duplications
+        $this->db->query("ALTER TABLE education_courses MODIFY course_name VARCHAR(255) UNIQUE");
+        
         $this->db->query("SET FOREIGN_KEY_CHECKS = 1");
     }
 
     private function migrateParishes() {
         echo "- Migrating Parishes...\n";
-        // Assuming search_bondang is the legacy parish table
-        // Adjust if actual source is different. 
-        // This is a placeholder for the logic discovered.
         $legacy = $this->db->query("SELECT * FROM search_bondang")->fetchAll(PDO::FETCH_ASSOC);
         foreach ($legacy as $row) {
-            $stmt = $this->db->prepare("INSERT IGNORE INTO parishes (parish_code, parish_name) VALUES (?, ?)");
-            $stmt->execute([$row['BCODE'], $row['BONDANG']]);
+            $stmt = $this->db->prepare("
+                REPLACE INTO parishes 
+                (parish_code, parish_name, diocese_name, diocese_code, district_name, district_code) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $row['BCODE'], 
+                $row['BONDANG'],
+                $row['GYOGU'],
+                $row['GCODE'],
+                $row['JIGU'],
+                $row['JCODE']
+            ]);
         }
+
+        // Populate vicariates and districts tables for management
+        echo "- Populating Vicariates and Districts tables...\n";
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 0");
+        $this->db->query("TRUNCATE TABLE vicariates");
+        $this->db->query("TRUNCATE TABLE districts");
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 1");
+        
+        $this->db->query("
+            INSERT INTO vicariates (name, code)
+            SELECT DISTINCT diocese_name, diocese_code 
+            FROM parishes 
+            WHERE diocese_name IS NOT NULL AND diocese_name != ''
+        ");
+
+        $this->db->query("
+            INSERT IGNORE INTO districts (vicariate_id, name, code)
+            SELECT DISTINCT v.id, p.district_name, p.district_code
+            FROM parishes p
+            JOIN vicariates v ON p.diocese_code COLLATE utf8mb4_unicode_ci = v.code COLLATE utf8mb4_unicode_ci
+            WHERE p.district_name IS NOT NULL AND p.district_name != ''
+        ");
+
+        // Link parishes to district_id
+        $this->db->query("
+            UPDATE parishes p
+            JOIN districts d ON p.district_code COLLATE utf8mb4_unicode_ci = d.code COLLATE utf8mb4_unicode_ci
+            SET p.district_id = d.id
+        ");
     }
 
     private function migrateUsers() {
@@ -78,26 +160,37 @@ class Migrator {
         
         // 1. Migrate from legacy table
         $legacy = $this->db->query("SELECT * FROM ctms_user_info")->fetchAll(PDO::FETCH_ASSOC);
-        $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password_hash, name, role) VALUES (?, ?, ?, ?)");
         
         foreach ($legacy as $row) {
             $role = 'bondang';
             $uid = $row['ctms_uid'];
             
-            if (in_array($uid, ['jsyang', 'youthet', 'swscout', 'admin1004'])) {
-                $role = 'casuwon';
-            } elseif (in_array($uid, ['youth-v1', 'youth-v2', 'youthas'])) {
-                $role = 'diocese';
+            if (in_array($uid, ['jsyang', 'youthet', 'swscout', 'admin1004'])) $role = 'casuwon';
+            if (in_array($uid, ['youth-v1', 'youth-v2', 'youthas'])) $role = 'diocese';
+
+            // Find parish_id by matching ctms_ucode with parish_code
+            $parishId = null;
+            if (!empty($row['ctms_ucode'])) {
+                $stmtP = $this->db->prepare("SELECT id FROM parishes WHERE parish_code = ?");
+                $stmtP->execute([$row['ctms_ucode']]);
+                $p = $stmtP->fetch(PDO::FETCH_ASSOC);
+                $parishId = $p['id'] ?? null;
             }
-            
-            $name = in_array($uid, ['jsyang', 'youthet', 'swscout', 'admin1004']) ? ($row['ctms_uname'] ?: '관리자') : $row['ctms_uname'];
-            $stmt->execute([$uid, $row['ctms_upwd'], $name, $role]);
+
+            $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password_hash, name, role, parish_id) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $uid,
+                $row['ctms_upwd'],
+                $row['ctms_uname'],
+                $role,
+                $parishId
+            ]);
         }
 
         // 2. Ensure critical accounts from legacy files are present even if not in ctms_user_info
         $manualUsers = [
-            ['admin1004', '카숸', '전체 관리자', 'casuwon'],
-            ['youthas', '4..1', '안산대리구 관리자', 'diocese']
+            ['admin1004', 'casuwon', '전체 관리자', 'casuwon', null],
+            ['youthas', '4..1', '안산대리구 관리자', 'diocese', null]
         ];
 
         foreach ($manualUsers as $user) {
@@ -107,6 +200,15 @@ class Migrator {
         // 3. Fix roles for existing users that might have been migrated with wrong roles (if any)
         $this->db->query("UPDATE users SET role = 'casuwon' WHERE login_id IN ('jsyang', 'youthet', 'swscout', 'admin1004')");
         $this->db->query("UPDATE users SET role = 'diocese' WHERE login_id IN ('youth-v1', 'youth-v2', 'youthas')");
+
+        // 4. Link users to parishes by matching login_id with parish_code
+        echo "- Linking users to parishes...\n";
+        $this->db->query("
+            UPDATE users u
+            JOIN parishes p ON u.login_id = p.parish_code
+            SET u.parish_id = p.id
+            WHERE u.role = 'bondang'
+        ");
     }
 
     private function migrateTeachers() {
@@ -195,22 +297,28 @@ class Migrator {
         $eduData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $insertCourse = $this->db->prepare("INSERT IGNORE INTO education_courses (course_name, category) VALUES (?, 'General')");
+        
+        // Use a more robust join-based insert with DISTINCT or specific mapping
         $insertRecord = $this->db->prepare("
             INSERT IGNORE INTO education_records (teacher_id, course_id, completion_date, status)
             SELECT t.id, c.id, ?, 'Completed'
             FROM teachers t
             JOIN education_courses c ON c.course_name = ?
             WHERE t.login_id = ?
+            LIMIT 1
         ");
 
         foreach ($eduData as $row) {
-            // Ensure course exists
-            $insertCourse->execute([$row['edu_title']]);
+            $courseName = trim($row['edu_title']);
+            if (empty($courseName)) continue;
+
+            // 1. Ensure course exists (UNIQUE constraint will prevent duplicates now)
+            $insertCourse->execute([$courseName]);
             
-            // Insert record
+            // 2. Insert record
             $insertRecord->execute([
                 $row['edu_dt'],
-                $row['edu_title'],
+                $courseName,
                 $row['login_id']
             ]);
         }
