@@ -134,7 +134,7 @@ class UserService
         $params[] = $id;
         $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?";
         
-        return $this->db->query($sql, $params);
+        return (bool)$this->db->query($sql, $params);
     }
 
     /**
@@ -149,7 +149,7 @@ class UserService
                 (login_id, name, parish_id, role, password_hash, phone, fax, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
         
-        return $this->db->query($sql, [
+        return (bool)$this->db->query($sql, [
             $data['login_id'], 
             $data['name'], 
             $parishId, 
@@ -166,6 +166,6 @@ class UserService
     public function deleteUser(int $id): bool
     {
         $sql = "DELETE FROM users WHERE id = ?";
-        return $this->db->query($sql, [$id]);
+        return (bool)$this->db->query($sql, [$id]);
     }
 }

@@ -121,24 +121,24 @@ class ParishService
 
     // --- Vicariate Management ---
     public function createVicariate(array $data): bool {
-        return $this->db->query("INSERT INTO vicariates (name, code) VALUES (?, ?)", [$data['name'], $data['code']]);
+        return (bool)$this->db->query("INSERT INTO vicariates (name, code) VALUES (?, ?)", [$data['name'], $data['code']]);
     }
     public function updateVicariate(int $id, array $data): bool {
-        return $this->db->query("UPDATE vicariates SET name = ?, code = ? WHERE id = ?", [$data['name'], $data['code'], $id]);
+        return (bool)$this->db->query("UPDATE vicariates SET name = ?, code = ? WHERE id = ?", [$data['name'], $data['code'], $id]);
     }
     public function deleteVicariate(int $id): bool {
-        return $this->db->query("DELETE FROM vicariates WHERE id = ?", [$id]);
+        return (bool)$this->db->query("DELETE FROM vicariates WHERE id = ?", [$id]);
     }
 
     // --- District Management ---
     public function createDistrict(array $data): bool {
-        return $this->db->query("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)", [$data['vicariate_id'], $data['name'], $data['code']]);
+        return (bool)$this->db->query("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)", [$data['vicariate_id'], $data['name'], $data['code']]);
     }
     public function updateDistrict(int $id, array $data): bool {
-        return $this->db->query("UPDATE districts SET vicariate_id = ?, name = ?, code = ? WHERE id = ?", [$data['vicariate_id'], $data['name'], $data['code'], $id]);
+        return (bool)$this->db->query("UPDATE districts SET vicariate_id = ?, name = ?, code = ? WHERE id = ?", [$data['vicariate_id'], $data['name'], $data['code'], $id]);
     }
     public function deleteDistrict(int $id): bool {
-        return $this->db->query("DELETE FROM districts WHERE id = ?", [$id]);
+        return (bool)$this->db->query("DELETE FROM districts WHERE id = ?", [$id]);
     }
 
     /**
@@ -155,7 +155,7 @@ class ParishService
 
         $sql = "INSERT INTO parishes (district_id, parish_name, parish_code, pastor_name, address_basic, phone) 
                 VALUES (?, ?, ?, ?, ?, ?)";
-        return $this->db->query($sql, [
+        return (bool)$this->db->query($sql, [
             $districtId, $data['bondang'], $data['bcode'],
             $data['pastor'] ?? null, $data['address'] ?? null, $data['phone'] ?? null
         ]);
@@ -176,7 +176,7 @@ class ParishService
                 SET district_id = ?, parish_name = ?, parish_code = ?,
                     pastor_name = ?, address_basic = ?, phone = ?
                 WHERE id = ?";
-        return $this->db->query($sql, [
+        return (bool)$this->db->query($sql, [
             $districtId, $data['bondang'], $data['bcode'],
             $data['pastor'] ?? null, $data['address'] ?? null, $data['phone'] ?? null,
             $id
@@ -189,6 +189,6 @@ class ParishService
     public function deleteParish(int $id): bool
     {
         $sql = "DELETE FROM parishes WHERE id = ?";
-        return $this->db->query($sql, [$id]);
+        return (bool)$this->db->query($sql, [$id]);
     }
 }
