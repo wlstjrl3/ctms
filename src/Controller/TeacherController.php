@@ -219,14 +219,12 @@ class TeacherController
         }
 
         // Parse awards
-        if (isset($_POST['award_name']) && is_array($_POST['award_name'])) {
-            $csYear = (int)($_POST['cs_year'] ?? 0);
-            foreach ($_POST['award_name'] as $i => $awardName) {
-                if (!empty($awardName)) {
-                    // Auto-calculate year: Start Year + Years of Service
-                    $year = $csYear + (int)$awardName;
+        if (isset($_POST['award_year']) && is_array($_POST['award_year'])) {
+            foreach ($_POST['award_year'] as $i => $year) {
+                $awardName = $_POST['award_name'][$i] ?? '';
+                if (!empty($year) && !empty($awardName)) {
                     $data['awards'][] = [
-                        'tml_year' => (string)$year,
+                        'tml_year' => $year,
                         'tml'      => $awardName,
                         'bcode'    => (string)$session->get('bcode', '')
                     ];

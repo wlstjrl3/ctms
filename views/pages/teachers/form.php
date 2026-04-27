@@ -249,6 +249,10 @@ function isChecked($val1, $val2) {
                                     foreach ($awards as $award): 
                                 ?>
                                 <div class="award-item" style="display: flex; gap: 0.75rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                    <div style="width: 100px; position: relative;">
+                                        <input type="text" name="award_year[]" value="<?= htmlspecialchars($award['tml_year'] ?? '') ?>" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
+                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
+                                    </div>
                                     <div style="flex: 1;">
                                         <select name="award_name[]">
                                             <option value="">수상 선택</option>
@@ -404,6 +408,10 @@ function isChecked($val1, $val2) {
         });
 
         div.innerHTML = `
+            <div style="width: 100px; position: relative;">
+                <input type="text" name="award_year[]" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
+                <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
+            </div>
             <div style="flex: 1;">
                 <select name="award_name[]">${options}</select>
             </div>
