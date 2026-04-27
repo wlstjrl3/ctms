@@ -242,11 +242,15 @@ class Migrator {
             $birthDate = null;
             if ($row['birthday'] && strlen($row['birthday']) === 8) {
                 $year = (int)substr($row['birthday'], 0, 4);
-                $month = substr($row['birthday'], 4, 2);
-                $day = substr($row['birthday'], 6, 2);
+                $month = (int)substr($row['birthday'], 4, 2);
+                $day = (int)substr($row['birthday'], 6, 2);
+                
                 if ($year >= 1900 && $year <= 1925) $year += 100;
                 if ($year >= 2050) $year -= 100;
-                $birthDate = sprintf("%04d-%s-%s", $year, $month, $day);
+
+                if (checkdate($month, $day, $year)) {
+                    $birthDate = sprintf("%04d-%02d-%02d", $year, $month, $day);
+                }
             }
 
             $feastDay = null;
@@ -293,11 +297,14 @@ class Migrator {
             $birthDate = null;
             if ($row['strBirthday'] && strlen($row['strBirthday']) >= 8) {
                 $year = (int)substr($row['strBirthday'], 0, 4);
-                $month = substr($row['strBirthday'], 4, 2);
-                $day = substr($row['strBirthday'], 6, 2);
+                $month = (int)substr($row['strBirthday'], 4, 2);
+                $day = (int)substr($row['strBirthday'], 6, 2);
                 if ($year >= 1900 && $year <= 1925) $year += 100;
                 if ($year >= 2050) $year -= 100;
-                $birthDate = sprintf("%04d-%s-%s", $year, $month, $day);
+                
+                if (checkdate($month, $day, $year)) {
+                    $birthDate = sprintf("%04d-%02d-%02d", $year, $month, $day);
+                }
             }
 
             $stmtRetired->execute([
