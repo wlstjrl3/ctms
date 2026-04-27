@@ -20,48 +20,54 @@ $base = \App\Core\App::getInstance()->getBasePath();
 <!-- Filters -->
 <div class="glass-card" style="margin-bottom: 2rem; padding: 1.5rem;">
     <div id="filter-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+        <?php if (\App\Core\App::getInstance()->session()->getRole() !== 'bondang'): ?>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>본당</label>
+            <input type="text" name="parish_name" class="ajax-filter" value="<?= htmlspecialchars($filters['parish_name'] ?? '') ?>" placeholder="본당명 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+        </div>
+        <?php endif; ?>
         <div class="form-group" style="margin-bottom: 0;">
             <label>이름</label>
-            <input type="text" name="name" class="ajax-filter" placeholder="이름 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <input type="text" name="name" class="ajax-filter" value="<?= htmlspecialchars($filters['name'] ?? '') ?>" placeholder="이름 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>세례명</label>
-            <input type="text" name="bname" class="ajax-filter" placeholder="세례명 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <input type="text" name="bname" class="ajax-filter" value="<?= htmlspecialchars($filters['bname'] ?? '') ?>" placeholder="세례명 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>연령대</label>
             <div style="display: flex; gap: 0.25rem; align-items: center;">
-                <input type="number" name="age_start" class="ajax-filter" placeholder="시작" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <input type="number" name="age_min" class="ajax-filter" value="<?= htmlspecialchars($filters['age_min'] ?? '') ?>" placeholder="시작" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
                 <span>~</span>
-                <input type="number" name="age_end" class="ajax-filter" placeholder="끝" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <input type="number" name="age_max" class="ajax-filter" value="<?= htmlspecialchars($filters['age_max'] ?? '') ?>" placeholder="끝" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
             </div>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>소속</label>
             <select name="academy" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
-                <option value="all">전체</option>
-                <option value="1">초등부</option>
-                <option value="2">중고등부</option>
-                <option value="125">초·중고등부</option>
-                <option value="3">대건</option>
-                <option value="4">장애아</option>
+                <option value="all" <?= ($filters['academy'] ?? '') === 'all' ? 'selected' : '' ?>>전체</option>
+                <option value="1" <?= ($filters['academy'] ?? '') === '1' ? 'selected' : '' ?>>초등부</option>
+                <option value="2" <?= ($filters['academy'] ?? '') === '2' ? 'selected' : '' ?>>중고등부</option>
+                <option value="125" <?= ($filters['academy'] ?? '') === '125' ? 'selected' : '' ?>>초·중고등부</option>
+                <option value="3" <?= ($filters['academy'] ?? '') === '3' ? 'selected' : '' ?>>대건</option>
+                <option value="4" <?= ($filters['academy'] ?? '') === '4' ? 'selected' : '' ?>>장애아</option>
             </select>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>직책</label>
-            <input type="text" name="position" class="ajax-filter" placeholder="직책 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <input type="text" name="position" class="ajax-filter" value="<?= htmlspecialchars($filters['position'] ?? '') ?>" placeholder="직책 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>근속연수</label>
             <div style="display: flex; gap: 0.25rem; align-items: center;">
-                <input type="number" name="tenure_start" class="ajax-filter" placeholder="시작" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <input type="number" name="tenure_min" class="ajax-filter" value="<?= htmlspecialchars($filters['tenure_min'] ?? '') ?>" placeholder="시작" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
                 <span>~</span>
-                <input type="number" name="tenure_end" class="ajax-filter" placeholder="끝" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <input type="number" name="tenure_max" class="ajax-filter" value="<?= htmlspecialchars($filters['tenure_max'] ?? '') ?>" placeholder="끝" style="width: 50%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
             </div>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>연락처</label>
-            <input type="text" name="phone" class="ajax-filter" placeholder="전화번호 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <input type="text" name="phone" class="ajax-filter" value="<?= htmlspecialchars($filters['phone'] ?? '') ?>" placeholder="전화번호 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
     </div>
 </div>

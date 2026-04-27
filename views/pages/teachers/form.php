@@ -249,17 +249,15 @@ function isChecked($val1, $val2) {
                                     foreach ($awards as $award): 
                                 ?>
                                 <div class="award-item" style="display: flex; gap: 0.75rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--glass-border);">
-                                    <div style="width: 100px; position: relative;">
-                                        <input type="text" name="award_year[]" value="<?= htmlspecialchars($award['tml_year'] ?? '') ?>" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
-                                        <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
-                                    </div>
                                     <div style="flex: 1;">
                                         <select name="award_name[]">
                                             <option value="">수상 선택</option>
-                                            <?php for($y=1; $y<=30; $y++): ?>
+                                            <?php 
+                                                $awardOptions = [3, 5, 10, 15, 20, 25];
+                                                foreach($awardOptions as $y): 
+                                            ?>
                                                 <option value="<?= $y ?>" <?= isSelected($award['tml'] ?? '', (string)$y) ?>><?= $y ?>년 근속상</option>
-                                            <?php endfor; ?>
-                                            <option value="special" <?= isSelected($award['tml'] ?? '', 'special') ?>>특별상</option>
+                                            <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
@@ -399,15 +397,13 @@ function isChecked($val1, $val2) {
         div.className = 'award-item';
         div.style.cssText = 'display: flex; gap: 0.75rem; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--glass-border);';
         
+        const awardOptions = [3, 5, 10, 15, 20, 25];
         let options = '<option value="">수상 선택</option>';
-        for(let i=1; i<=30; i++) options += `<option value="${i}">${i}년 근속상</option>`;
-        options += '<option value="special">특별상</option>';
+        awardOptions.forEach(y => {
+            options += `<option value="${y}">${y}년 근속상</option>`;
+        });
 
         div.innerHTML = `
-            <div style="width: 100px; position: relative;">
-                <input type="text" name="award_year[]" placeholder="연도" style="text-align: center; padding-right: 1.5rem;">
-                <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
-            </div>
             <div style="flex: 1;">
                 <select name="award_name[]">${options}</select>
             </div>

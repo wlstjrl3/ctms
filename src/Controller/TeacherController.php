@@ -30,15 +30,13 @@ class TeacherController
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
         
-        $filters = [
-            'search'   => $_GET['search'] ?? '',
-            'category' => $_GET['search_category'] ?? 'name',
-            'academy'  => $_GET['academy'] ?? 'all'
-        ];
+        $filters = $_GET;
 
         $teachers = $this->service->getTeacherList($bcode, $filters, $page, $pageSize);
         $totalCount = $this->service->getTeacherCount($bcode, $filters);
         $pageCount = (int)ceil($totalCount / $pageSize);
+
+        $parishes = []; // No longer needed for select box, using text input instead
 
         // Solve N+1: Fetch awards for all teachers in one go
         $teacherIds = array_column($teachers, 'id');
@@ -217,12 +215,15 @@ class TeacherController
         }
 
         // Parse awards
-        if (isset($_POST['award_year']) && is_array($_POST['award_year'])) {
-            foreach ($_POST['award_year'] as $i => $year) {
-                if (!empty($year)) {
+        if (isset($_POST['award_name']) && is_array($_POST['award_name'])) {
+            $csYear = (int)($_POST['cs_year'] ?? 0);
+            foreach ($_POST['award_name'] as $i => $awardName) {
+                if (!empty($awardName)) {
+                    // Auto-calculate year: Start Year + Years of Service
+                    $year = $csYear + (int)$awardName;
                     $data['awards'][] = [
-                        'tml_year' => $year,
-                        'tml'      => $_POST['award_name'][$i] ?? '',
+                        'tml_year' => (string)$year,
+                        'tml'      => $awardName,
                         'bcode'    => (string)$session->get('bcode', '')
                     ];
                 }

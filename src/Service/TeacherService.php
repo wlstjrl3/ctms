@@ -203,9 +203,11 @@ class TeacherService
             $whereSql .= " AND t.baptismal_name LIKE ?";
             $params[] = "%{$filters['bname']}%";
         }
-        if (!empty($filters['dept'])) {
+        $dept = $filters['dept'] ?? $filters['academy'] ?? '';
+        if (!empty($dept) && $dept !== 'all') {
+            $mappedDept = $this->mapDepartment($dept);
             $whereSql .= " AND t.department = ?";
-            $params[] = $filters['dept'];
+            $params[] = ($dept === $mappedDept) ? $dept : $mappedDept;
         }
         if (!empty($filters['pos'])) {
             $whereSql .= " AND t.position LIKE ?";
@@ -215,6 +217,10 @@ class TeacherService
             $whereSql .= " AND (t.mobile_phone LIKE ? OR t.home_phone LIKE ?)";
             $params[] = "%{$filters['phone']}%";
             $params[] = "%{$filters['phone']}%";
+        }
+        if (!empty($filters['parish_name'])) {
+            $whereSql .= " AND p.parish_name LIKE ?";
+            $params[] = "%{$filters['parish_name']}%";
         }
         
         // Age filter (based on birth_date YYYY-MM-DD)
@@ -281,9 +287,11 @@ class TeacherService
             $params[] = "%{$filters['bname']}%";
         }
 
-        if (!empty($filters['dept'])) {
+        $dept = $filters['dept'] ?? $filters['academy'] ?? '';
+        if (!empty($dept) && $dept !== 'all') {
+            $mappedDept = $this->mapDepartment($dept);
             $whereSql .= " AND t.department = ?";
-            $params[] = $filters['dept'];
+            $params[] = ($dept === $mappedDept) ? $dept : $mappedDept;
         }
 
         if (!empty($filters['pos'])) {
@@ -295,6 +303,12 @@ class TeacherService
             $whereSql .= " AND (t.mobile_phone LIKE ? OR t.home_phone LIKE ?)";
             $params[] = "%{$filters['phone']}%";
             $params[] = "%{$filters['phone']}%";
+        }
+
+        if (!empty($filters['parish_name'])) {
+            $whereSql .= " AND p.parish_name LIKE ?";
+            $params[] = "%{$filters['parish_name']}%";
+            $joinParishes = true;
         }
 
         if (!empty($filters['age_min'])) {
