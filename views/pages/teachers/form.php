@@ -79,7 +79,6 @@ function isChecked($val1, $val2) {
                 <button type="button" class="tab-btn active" onclick="showTab('basic')">인적 사항</button>
                 <button type="button" class="tab-btn" onclick="showTab('assignment')">소속 및 수상</button>
                 <button type="button" class="tab-btn" onclick="showTab('edu_detail')">상세 교육</button>
-                <button type="button" class="tab-btn" onclick="showTab('history')">참여 이력</button>
             </div>
 
             <!-- 1. 인적 사항 -->
@@ -303,39 +302,7 @@ function isChecked($val1, $val2) {
                 </div>
             </div>
 
-            <!-- 4. 참여 이력 -->
-            <div id="tab-history" class="tab-content" style="display: none;">
-                <h4 style="margin-bottom: 1.5rem; color: var(--primary);">🕒 교육 및 연수 참가 이력 (자동 집계)</h4>
-                <div class="table-container">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.8rem;">
-                                <th style="padding: 1rem;">날짜</th>
-                                <th style="padding: 1rem;">교육명</th>
-                                <th style="padding: 1rem; text-align: center;">상태</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($teacher['participation'] ?? [] as $p): ?>
-                            <tr style="border-bottom: 1px solid var(--glass-border);">
-                                <td style="padding: 1rem; font-size: 0.85rem;">
-                                    <?= substr($p['edu_date'], 0, 10) ?>
-                                </td>
-                                <td style="padding: 1rem;">
-                                    <div style="font-weight: 600;"><?= htmlspecialchars($p['edu_subject']) ?></div>
-                                    <div style="font-size: 0.75rem; color: var(--text-muted);"><?= $p['edu_year'] ?>년 교육</div>
-                                </td>
-                                <td style="padding: 1rem; text-align: center;">
-                                    <span class="badge badge-active"><?= $p['att_ok'] === '1' ? '출석' : '결석' ?></span>
-                                </td>
-                            </tr>
-                            <?php endforeach; if(empty($teacher['participation'])): ?>
-                            <tr><td colspan="3" style="padding: 3rem; text-align: center; color: var(--text-muted);">참여 이력이 없습니다.</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
         </div>
     </div>
 </form>

@@ -376,19 +376,7 @@ class TeacherService
         return $this->db->fetchAll($sql, [$loginId]);
     }
 
-    public function getParticipationHistory(string $loginId): array
-    {
-        // Placeholder implementation using education_records for now
-        // In the future, this can be linked to a separate participation/attendance table
-        $sql = "SELECT er.completion_date as edu_date, ec.course_name as edu_subject, 
-                       YEAR(er.completion_date) as edu_year, '1' as att_ok
-                FROM education_records er
-                JOIN teachers t ON er.teacher_id = t.id
-                JOIN education_courses ec ON er.course_id = ec.id
-                WHERE t.login_id = ? 
-                ORDER BY er.completion_date DESC";
-        return $this->db->fetchAll($sql, [$loginId]);
-    }
+
 
     public function getAwardsBatch(array $teacherIds): array
     {

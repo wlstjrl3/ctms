@@ -124,7 +124,6 @@ class TeacherController
 
         $teacher['awards'] = $this->service->getAwards($loginId);
         $teacher['edu_details'] = $this->service->getEducationDetails($loginId);
-        $teacher['participation'] = $this->service->getParticipationHistory($loginId);
 
         $mode = 'edit';
         $title = '교사 정보 수정';
