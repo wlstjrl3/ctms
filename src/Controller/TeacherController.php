@@ -183,7 +183,8 @@ class TeacherController
             'type_num' => $_POST['type_num'] ?? '5',
             'ac_edpart02' => $_POST['ac_edpart02'] ?? '',
             'position'    => $_POST['position'] ?? '',
-            'ac_edsc'     => $_POST['ac_edsc'] ?? '',
+            'status'      => $_POST['status'] ?? 'active',
+            'current_grade' => $_POST['ac_edsc'] ?? '',
             'cs_year'     => $_POST['cs_year'] ?? '',
             'cs_month'    => $_POST['cs_month'] ?? '',
             

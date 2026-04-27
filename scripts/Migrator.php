@@ -47,6 +47,7 @@ class Migrator {
         $this->migrateParishes();
         $this->migrateUsers();
         $this->migrateTeachers();
+        $this->migrateFurloughs();
         $this->migrateAwards();
         
         echo "Migration Finished Successfully.\n";
@@ -83,6 +84,9 @@ class Migrator {
         if (empty($columns)) {
             $this->db->query("ALTER TABLE parishes ADD COLUMN district_id INT AFTER id");
         }
+        
+        // Update teachers status enum to match our code ('furlough' instead of 'on_leave')
+        $this->db->query("ALTER TABLE teachers MODIFY COLUMN status ENUM('active', 'furlough', 'retired') DEFAULT 'active'");
     }
 
     private function clearTables() {
@@ -212,81 +216,97 @@ class Migrator {
     }
 
     private function migrateTeachers() {
-        echo "- Migrating Teachers (with Y2K and Field mapping)...\n";
-        $legacy = $this->db->query("SELECT * FROM bd_member_right")->fetchAll(PDO::FETCH_ASSOC);
+        echo "- Migrating Teachers (Active + Retired)...\n";
         
-        // Load parish mapping
+        // 1. Load parish mapping
         $parishes = $this->db->query("SELECT id, parish_code FROM parishes")->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        // Load position mapping
-        $positions = [
-            '1' => '교사',
-            '2' => '교감',
-            '3' => '교무',
-            '4' => '총무'
-        ];
+        $deptMap = ['1'=>'elementary','2'=>'middle_high','3'=>'disabled','4'=>'integrated','5'=>'daegun'];
+        $positions = ['1'=>'교사','2'=>'교감','3'=>'교무','4'=>'총무'];
 
         $stmt = $this->db->prepare("
-            INSERT IGNORE INTO teachers 
+            REPLACE INTO teachers 
             (parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email, department, position, status, current_grade)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        foreach ($legacy as $row) {
-            $parishId = array_search($row['bcode'], $parishes) ?: null;
-            if (!$parishId) {
-                 // Try to find by code if the flip didn't work as expected
-                 $parishId = null;
-                 foreach($parishes as $id => $code) {
-                     if($code === $row['bcode']) { $parishId = $id; break; }
-                 }
+        // PHASE 1: Active Teachers from bd_member_right
+        echo "  - Phase 1: Migrating Active Teachers...\n";
+        $activeLegacy = $this->db->query("SELECT * FROM bd_member_right")->fetchAll(PDO::FETCH_ASSOC);
+        $today = date('Y-m-d');
+        foreach ($activeLegacy as $row) {
+            $parishId = null;
+            foreach($parishes as $id => $code) {
+                if($code === $row['bcode']) { $parishId = $id; break; }
             }
 
-            // Y2K Correction for birthday
             $birthDate = null;
             if ($row['birthday'] && strlen($row['birthday']) === 8) {
                 $year = (int)substr($row['birthday'], 0, 4);
                 $month = substr($row['birthday'], 4, 2);
                 $day = substr($row['birthday'], 6, 2);
-                
-                // Fix: 1900-1925 -> 2000-2025
                 if ($year >= 1900 && $year <= 1925) $year += 100;
-                // Fix: 2089 -> 1989
                 if ($year >= 2050) $year -= 100;
-                
                 $birthDate = sprintf("%04d-%s-%s", $year, $month, $day);
             }
 
-            // Feast day correction
             $feastDay = null;
             if ($row['bday'] && strlen($row['bday']) === 4) {
                 $feastDay = substr($row['bday'], 0, 2) . '-' . substr($row['bday'], 2, 2);
             }
 
-            $deptMap = [
-                '1' => 'elementary',
-                '2' => 'middle_high',
-                '3' => 'disabled',
-                '4' => 'integrated',
-                '5' => 'daegun'
-            ];
+            // Determine if currently on furlough
+            $status = 'active';
+            $isFurlough1 = ($row['reason1'] > 0 && substr($row['rsdt1'], 0, 10) <= $today && (substr($row['rsdt2'], 0, 10) >= $today || $row['rsdt2'] == '1900-01-01 00:00:00'));
+            $isFurlough2 = ($row['reason2'] > 0 && substr($row['rsdt3'], 0, 10) <= $today && (substr($row['rsdt4'], 0, 10) >= $today || $row['rsdt4'] == '1900-01-01 00:00:00'));
+            $isFurlough3 = ($row['reason3'] > 0 && substr($row['rsdt5'], 0, 10) <= $today && (substr($row['rsdt6'], 0, 10) >= $today || $row['rsdt6'] == '1900-01-01 00:00:00'));
+            
+            if ($isFurlough1 || $isFurlough2 || $isFurlough3) {
+                $status = 'furlough';
+            }
 
             $stmt->execute([
-                $parishId,
-                $row['login_id'],
-                $row['name'],
-                $row['bname'],
-                $birthDate,
-                $feastDay,
-                $row['phone2'], // mobile
-                $row['phone1'], // home
-                null, // email (not in legacy main)
+                $parishId, $row['login_id'], $row['name'], $row['bname'], $birthDate, $feastDay, 
+                $row['phone2'], $row['phone1'], null,
                 $deptMap[$row['academy']] ?? 'elementary',
                 $positions[$row['type_num']] ?? '교사',
-                ($row['state'] == '0') ? 'active' : 'inactive',
-                $row['type_etc'] // remarks
+                $status,
+                $row['type_etc']
             ]);
         }
+
+        // PHASE 2: Retired Teachers from MPLUS_MEMBER_LIST (using INSERT IGNORE)
+        echo "  - Phase 2: Migrating Retired Teachers...\n";
+        $allMembers = $this->db->query("SELECT * FROM MPLUS_MEMBER_LIST WHERE bitDelete = '1'")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmtRetired = $this->db->prepare("
+            INSERT IGNORE INTO teachers 
+            (parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email, department, position, status, current_grade)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        foreach ($allMembers as $row) {
+            $parishId = null;
+            foreach($parishes as $id => $code) {
+                if($code === $row['bcode']) { $parishId = $id; break; }
+            }
+
+            $birthDate = null;
+            if ($row['strBirthday'] && strlen($row['strBirthday']) >= 8) {
+                $year = (int)substr($row['strBirthday'], 0, 4);
+                $month = substr($row['strBirthday'], 4, 2);
+                $day = substr($row['strBirthday'], 6, 2);
+                if ($year >= 1900 && $year <= 1925) $year += 100;
+                if ($year >= 2050) $year -= 100;
+                $birthDate = sprintf("%04d-%s-%s", $year, $month, $day);
+            }
+
+            $stmtRetired->execute([
+                $parishId, $row['strLoginID'], $row['strLoginName'], $row['strNick'] ?? '', $birthDate, null,
+                $row['strMobile'], $row['strHomeTel'], $row['strEmail'],
+                'elementary', '교사', 'retired', 'Legacy Retired'
+            ]);
+        }
+
         $this->migrateTenure();
         $this->migrateEducation();
     }
@@ -336,6 +356,43 @@ class Migrator {
 
         foreach ($tenures as $row) {
             $insertTenure->execute([$row['cs_year'], $row['cs_month'], $row['login_id']]);
+        }
+    }
+
+    private function migrateFurloughs() {
+        echo "- Migrating Furlough History...\n";
+        $legacy = $this->db->query("SELECT login_id, reason1, rsdt1, rsdt2, reason2, rsdt3, rsdt4, reason3, rsdt5, rsdt6 FROM bd_member_right WHERE reason1 > 0 OR reason2 > 0 OR reason3 > 0")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmt = $this->db->prepare("
+            INSERT IGNORE INTO teacher_furloughs (teacher_id, reason, start_date, end_date)
+            SELECT id, ?, ?, ? FROM teachers WHERE login_id = ?
+        ");
+
+        foreach ($legacy as $row) {
+            if ($row['reason1'] > 0) {
+                $stmt->execute([
+                    $row['reason1'],
+                    substr($row['rsdt1'], 0, 10),
+                    ($row['rsdt2'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt2'], 0, 10),
+                    $row['login_id']
+                ]);
+            }
+            if ($row['reason2'] > 0) {
+                $stmt->execute([
+                    $row['reason2'],
+                    substr($row['rsdt3'], 0, 10),
+                    ($row['rsdt4'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt4'], 0, 10),
+                    $row['login_id']
+                ]);
+            }
+            if ($row['reason3'] > 0) {
+                $stmt->execute([
+                    $row['reason3'],
+                    substr($row['rsdt5'], 0, 10),
+                    ($row['rsdt6'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt6'], 0, 10),
+                    $row['login_id']
+                ]);
+            }
         }
     }
 

@@ -43,6 +43,15 @@ $base = \App\Core\App::getInstance()->getBasePath();
             </div>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
+            <label>상태</label>
+            <select name="status" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <option value="all" <?= ($filters['status'] ?? '') === 'all' ? 'selected' : '' ?>>전체</option>
+                <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>재직</option>
+                <option value="furlough" <?= ($filters['status'] ?? '') === 'furlough' ? 'selected' : '' ?>>휴직</option>
+                <option value="retired" <?= ($filters['status'] ?? '') === 'retired' ? 'selected' : '' ?>>퇴직</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
             <label>소속</label>
             <select name="academy" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
                 <option value="all" <?= ($filters['academy'] ?? '') === 'all' ? 'selected' : '' ?>>전체</option>

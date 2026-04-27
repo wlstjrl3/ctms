@@ -189,6 +189,17 @@ class TeacherService
         $offset = ($page - 1) * $pageSize;
         $whereSql = "WHERE 1=1";
         $params = [];
+
+        // Status Filter (Default: Hide Retired)
+        $status = $filters['status'] ?? '';
+        if ($status === 'all') {
+            // No filter
+        } elseif (!empty($status)) {
+            $whereSql .= " AND t.status = ?";
+            $params[] = $status;
+        } else {
+            $whereSql .= " AND t.status != 'retired'";
+        }
         
         if (!empty($bcode)) {
             $whereSql .= " AND p.parish_code = ?";
@@ -270,6 +281,17 @@ class TeacherService
         $params = [];
         $joinParishes = false;
         $joinTenure = false;
+
+        // Status Filter (Default: Hide Retired)
+        $status = $filters['status'] ?? '';
+        if ($status === 'all') {
+            // No filter
+        } elseif (!empty($status)) {
+            $whereSql .= " AND t.status = ?";
+            $params[] = $status;
+        } else {
+            $whereSql .= " AND t.status != 'retired'";
+        }
 
         if (!empty($bcode)) {
             $whereSql .= " AND p.parish_code = ?";

@@ -160,6 +160,14 @@ function isChecked($val1, $val2) {
                                     <option value="4" <?= isSelected($teacher['department'] ?? '', 'integrated') ?>>초·중고 통합</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>재직 상태</label>
+                                <select name="status">
+                                    <option value="active" <?= isSelected($teacher['status'] ?? 'active', 'active') ?>>재직</option>
+                                    <option value="furlough" <?= isSelected($teacher['status'] ?? '', 'furlough') ?>>휴직</option>
+                                    <option value="retired" <?= isSelected($teacher['status'] ?? '', 'retired') ?>>퇴직</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="glass-card" style="padding: 2rem; margin-top: 1.5rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
                             <div class="form-group">
