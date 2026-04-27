@@ -451,6 +451,7 @@ function showToast(message, type = 'info') {
         toast.classList.add('fade-out');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -473,13 +474,34 @@ function previewImage(input) {
         <button type="button" onclick="closeParishModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
         <h2 style="margin-bottom: 1.5rem;">본당 검색</h2>
         
-        <div class="form-group">
-            <input type="text" id="parish_search_keyword" placeholder="본당명 또는 대리구명 입력" onkeyup="searchParish(this.value)" autofocus style="width: 100%; padding: 1rem; background: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-main);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin: 0;">
+                <label style="font-size: 0.8rem; color: var(--text-muted);">대리구</label>
+                <select id="parish_search_vicariate" onchange="filterDistricts(this.value); searchParish()" style="width: 100%; background: var(--bg-dark);">
+                    <option value="">전체 대리구</option>
+                    <?php foreach ($vicariates as $v): ?>
+                        <option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['GYOGU']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label style="font-size: 0.8rem; color: var(--text-muted);">지구</label>
+                <select id="parish_search_district" onchange="searchParish()" style="width: 100%; background: var(--bg-dark);">
+                    <option value="">전체 지구</option>
+                    <?php foreach ($districts as $d): ?>
+                        <option value="<?= $d['id'] ?>" data-vicariate="<?= $d['vicariate_id'] ?>"><?= htmlspecialchars($d['JIGU']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
 
-        <div id="parish_search_results" style="max-height: 300px; overflow-y: auto; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-            <!-- Results will appear here -->
-            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>
+        <div class="form-group">
+            <label style="font-size: 0.8rem; color: var(--text-muted);">본당명</label>
+            <input type="text" id="parish_search_keyword" placeholder="본당명 입력..." onkeyup="searchParish()" style="width: 100%; padding: 1rem; background: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-main);">
+        </div>
+
+        <div id="parish_search_results" style="max-height: 250px; overflow-y: auto; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색 조건을 입력하거나 선택하세요</p>
         </div>
     </div>
 </div>
@@ -497,15 +519,33 @@ function previewImage(input) {
         document.getElementById('parishModal').style.display = 'none';
     }
 
-    function searchParish(keyword) {
+    function filterDistricts(vicariateId) {
+        const districtSelect = document.getElementById('parish_search_district');
+        const options = districtSelect.options;
+        for (let i = 1; i < options.length; i++) {
+            const vId = options[i].getAttribute('data-vicariate');
+            if (!vicariateId || vId === vicariateId) {
+                options[i].hidden = false;
+            } else {
+                options[i].hidden = true;
+            }
+        }
+        districtSelect.value = '';
+    }
+
+    function searchParish() {
+        const vicariateId = document.getElementById('parish_search_vicariate').value;
+        const districtId = document.getElementById('parish_search_district').value;
+        const keyword = document.getElementById('parish_search_keyword').value;
+
         clearTimeout(parishSearchTimeout);
         parishSearchTimeout = setTimeout(() => {
-            if (keyword.length < 1) {
-                document.getElementById('parish_search_results').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>';
+            if (keyword.length < 1 && !vicariateId && !districtId) {
+                document.getElementById('parish_search_results').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색 조건을 입력하거나 선택하세요</p>';
                 return;
             }
 
-            fetch(`index.php?action=parish_search&keyword=${encodeURIComponent(keyword)}`)
+            fetch(`index.php?action=parish_search&vicariate_id=${vicariateId}&district_id=${districtId}&keyword=${encodeURIComponent(keyword)}`)
                 .then(res => res.json())
                 .then(data => {
                     const container = document.getElementById('parish_search_results');

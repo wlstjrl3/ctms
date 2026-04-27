@@ -119,6 +119,8 @@ class TeacherController
 
         $parishService = new ParishService();
         $parishes = $parishService->getParishList([], 1, 500); // Fetch all for select
+        $vicariates = $parishService->getDioceses();
+        $districts = $parishService->getDistricts();
 
         $teacher['awards'] = $this->service->getAwards($loginId);
         $teacher['edu_details'] = $this->service->getEducationDetails($loginId);
@@ -146,6 +148,8 @@ class TeacherController
 
         $parishService = new ParishService();
         $parishes = $parishService->getParishList([], 1, 500);
+        $vicariates = $parishService->getDioceses();
+        $districts = $parishService->getDistricts();
 
         require __DIR__ . '/../../views/layouts/header.php';
         require __DIR__ . '/../../views/pages/teachers/form.php';

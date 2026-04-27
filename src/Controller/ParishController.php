@@ -207,13 +207,17 @@ class ParishController
         }
 
         $keyword = $_GET['keyword'] ?? '';
-        $sql = "SELECT id, parish_name, diocese_name, district_name 
-                FROM parishes 
-                WHERE parish_name LIKE ? OR diocese_name LIKE ? OR district_name LIKE ?
-                LIMIT 20";
+        $vicariateId = $_GET['vicariate_id'] ?? '';
+        $districtId = $_GET['district_id'] ?? '';
         
-        $results = $this->service->getDb()->fetchAll($sql, ["%{$keyword}%", "%{$keyword}%", "%{$keyword}%"]);
+        $filters = [
+            'keyword' => $keyword,
+            'vicariate_id' => $vicariateId,
+            'district_id' => $districtId
+        ];
 
+        $results = $this->service->searchParishes($filters);
+        
         header('Content-Type: application/json');
         echo json_encode($results);
         exit;

@@ -25,7 +25,7 @@ class TeacherService
             if (!$teacher) throw new \Exception("Teacher not found");
 
             // 1. Get parish_id
-            $parishId = $data['parish_id'] ?? null;
+            $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
             if (!$parishId && !empty($data['bcode'])) {
                 $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
                 $parishId = $parish['id'] ?? null;
@@ -114,7 +114,7 @@ class TeacherService
 
         try {
             $loginId = 'tmp' . date('YmdHis') . str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
-            $parishId = $data['parish_id'] ?? null;
+            $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
             if (!$parishId && !empty($data['bcode'])) {
                 $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
                 $parishId = $parish['id'] ?? null;

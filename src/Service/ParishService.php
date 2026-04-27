@@ -188,4 +188,35 @@ class ParishService
         $sql = "DELETE FROM parishes WHERE id = ?";
         return (bool)$this->db->query($sql, [$id]);
     }
+    /**
+     * Search parishes with structured filters
+     */
+    public function searchParishes(array $filters): array
+    {
+        $where = "WHERE 1=1";
+        $params = [];
+
+        if (!empty($filters['vicariate_id'])) {
+            $where .= " AND v.id = ?";
+            $params[] = $filters['vicariate_id'];
+        }
+        if (!empty($filters['district_id'])) {
+            $where .= " AND d.id = ?";
+            $params[] = $filters['district_id'];
+        }
+        if (!empty($filters['keyword'])) {
+            $where .= " AND p.parish_name LIKE ?";
+            $params[] = "%{$filters['keyword']}%";
+        }
+
+        $sql = "SELECT p.id, p.parish_name, v.name as diocese_name, d.name as district_name 
+                FROM parishes p
+                LEFT JOIN districts d ON p.district_id = d.id
+                LEFT JOIN vicariates v ON d.vicariate_id = v.id
+                {$where}
+                ORDER BY p.parish_name ASC
+                LIMIT 30";
+        
+        return $this->db->fetchAll($sql, $params);
+    }
 }
