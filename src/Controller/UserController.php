@@ -88,13 +88,13 @@ class UserController
         $mode = $_POST['mode'] ?? 'edit';
 
         $data = [
-            'login_id'    => $_POST['login_id'] ?? '',
-            'password'    => $_POST['password'] ?? '',
-            'name'        => $_POST['name'] ?? '',
-            'parish_code' => $_POST['parish_code'] ?? '',
-            'phone'       => $_POST['phone'] ?? '',
-            'fax'         => $_POST['fax'] ?? '',
-            'role'        => $_POST['role'] ?? 'bondang',
+            'login_id' => $_POST['login_id'] ?? '',
+            'password' => $_POST['password'] ?? '',
+            'name'     => $_POST['name'] ?? '',
+            'org_cd'   => $_POST['org_cd'] ?? '',   // parish ORG_CD (e.g. 13110004)
+            'phone'    => $_POST['phone'] ?? '',
+            'fax'      => $_POST['fax'] ?? '',
+            'role'     => $_POST['role'] ?? 'bondang',
         ];
 
         if ($mode === 'edit' && $idx > 0) {

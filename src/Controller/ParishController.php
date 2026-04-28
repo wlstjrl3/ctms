@@ -88,16 +88,14 @@ class ParishController
     {
         $this->checkPermission();
         
-        $idx = (int)($_POST['idx'] ?? 0);
+        $idx  = (int)($_POST['idx'] ?? 0);
         $mode = $_POST['mode'] ?? 'edit';
 
         $data = [
-            'gyogu'   => $_POST['gyogu'] ?? '',
-            'gcode'   => $_POST['gcode'] ?? '',
-            'jigu'    => $_POST['jigu'] ?? '',
-            'jcode'   => $_POST['jcode'] ?? '',
+            'jcode'   => $_POST['jcode']   ?? '',  // district ORG_CD (e.g. 13090001)
             'bondang' => $_POST['bondang'] ?? '',
-            'bcode'   => $_POST['bcode'] ?? '',
+            'bcode'   => $_POST['bcode']   ?? '',
+            'phone'   => $_POST['phone']   ?? '',
         ];
 
         if ($mode === 'edit' && $idx > 0) {
@@ -144,7 +142,12 @@ class ParishController
     public function saveDistrict(): void {
         $this->checkPermission();
         $id = (int)($_POST['id'] ?? 0);
-        $data = ['vicariate_id' => (int)$_POST['vicariate_id'], 'name' => $_POST['name'], 'code' => $_POST['code']];
+        $data = [
+            'vicariate_id' => (int)$_POST['vicariate_id'], 
+            'name' => $_POST['name'], 
+            'code' => $_POST['code'],
+            'use_yn' => $_POST['use_yn'] ?? 'N'
+        ];
         if ($id > 0) $this->service->updateDistrict($id, $data);
         else $this->service->createDistrict($data);
         header('Location: index.php?page=parish_list&msg=success');

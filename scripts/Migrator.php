@@ -85,6 +85,13 @@ class Migrator {
             $this->db->query("ALTER TABLE parishes ADD COLUMN district_id INT AFTER id");
         }
         
+        // Add org_cd to parishes (ORG_INFO.ORG_CD reference) if not exists
+        $orgCdCol = $this->db->query("SHOW COLUMNS FROM parishes LIKE 'org_cd'")->fetchAll();
+        if (empty($orgCdCol)) {
+            $this->db->query("ALTER TABLE parishes ADD COLUMN org_cd INT DEFAULT NULL AFTER district_id");
+            $this->db->query("ALTER TABLE parishes ADD INDEX idx_org_cd (org_cd)");
+        }
+        
         // Update teachers status enum to match our code ('furlough' instead of 'on_leave')
         $this->db->query("ALTER TABLE teachers MODIFY COLUMN status ENUM('active', 'furlough', 'retired') DEFAULT 'active'");
     }
@@ -111,52 +118,91 @@ class Migrator {
     }
 
     private function migrateParishes() {
-        echo "- Migrating Parishes...\n";
-        $legacy = $this->db->query("SELECT * FROM search_bondang")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($legacy as $row) {
-            $stmt = $this->db->prepare("
-                REPLACE INTO parishes 
-                (parish_code, parish_name, diocese_name, diocese_code, district_name, district_code) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                trim((string)$row['BCODE']), 
-                trim((string)$row['BONDANG']),
-                trim((string)($row['GYOGU'] ?? '')),
-                trim((string)($row['GCODE'] ?? '')),
-                trim((string)($row['JIGU'] ?? '')),
-                trim((string)($row['JCODE'] ?? ''))
-            ]);
-        }
+        echo "- Migrating from ORG_INFO (표준 조직 테이블)...\n";
 
-        // Populate vicariates and districts tables for management
-        echo "- Populating Vicariates and Districts tables...\n";
+        // STEP 1: Reset vicariates and districts
         $this->db->query("SET FOREIGN_KEY_CHECKS = 0");
         $this->db->query("TRUNCATE TABLE vicariates");
         $this->db->query("TRUNCATE TABLE districts");
         $this->db->query("SET FOREIGN_KEY_CHECKS = 1");
-        
-        $this->db->query("
-            INSERT INTO vicariates (name, code)
-            SELECT DISTINCT TRIM(diocese_name), TRIM(diocese_code)
-            FROM parishes 
-            WHERE diocese_name IS NOT NULL AND diocese_name != ''
+
+        // STEP 2: Populate vicariates from ORG_INFO (ORG_CD prefix 1306)
+        echo "  - Populating vicariates from ORG_INFO...\n";
+        $vicRows = $this->db->query("
+            SELECT ORG_CD, ORG_NM FROM ORG_INFO 
+            WHERE ORG_CD LIKE '1306%' ORDER BY ORG_CD
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtVic = $this->db->prepare("INSERT INTO vicariates (name, code) VALUES (?, ?)");
+        foreach ($vicRows as $row) {
+            $stmtVic->execute([trim($row['ORG_NM']), (string)$row['ORG_CD']]);
+        }
+
+        // STEP 3: Populate districts from ORG_INFO (ORG_CD prefix 1309)
+        echo "  - Populating districts from ORG_INFO...\n";
+        $distRows = $this->db->query("
+            SELECT ORG_CD, ORG_NM, UPPR_ORG_CD FROM ORG_INFO 
+            WHERE ORG_CD LIKE '1309%' ORDER BY ORG_CD
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtDist = $this->db->prepare("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)");
+        foreach ($distRows as $row) {
+            $s = $this->db->prepare("SELECT id FROM vicariates WHERE code = ?");
+            $s->execute([(string)$row['UPPR_ORG_CD']]);
+            $vic = $s->fetch(PDO::FETCH_ASSOC);
+            $stmtDist->execute([$vic['id'] ?? null, trim($row['ORG_NM']), (string)$row['ORG_CD']]);
+        }
+
+        // STEP 4: Populate parishes from ORG_INFO (ORG_CD prefix 1311)
+        echo "  - Populating parishes from ORG_INFO...\n";
+        $parishRows = $this->db->query("
+            SELECT ORG_CD, ORG_NM, UPPR_ORG_CD, ORG_IN_TEL, EMAIL FROM ORG_INFO 
+            WHERE ORG_CD LIKE '1311%' ORDER BY ORG_CD
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtParish = $this->db->prepare("
+            REPLACE INTO parishes 
+            (org_cd, district_id, parish_name, parish_code, diocese_name, diocese_code, district_name, district_code, phone)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        $this->db->query("
-            INSERT IGNORE INTO districts (vicariate_id, name, code)
-            SELECT DISTINCT v.id, TRIM(p.district_name), TRIM(p.district_code)
-            FROM parishes p
-            JOIN vicariates v ON TRIM(p.diocese_code) COLLATE utf8mb4_unicode_ci = TRIM(v.code) COLLATE utf8mb4_unicode_ci
-            WHERE p.district_name IS NOT NULL AND p.district_name != ''
-        ");
+        foreach ($parishRows as $row) {
+            $orgCd  = (int)$row['ORG_CD'];
+            $upprCd = (string)$row['UPPR_ORG_CD'];  // 지구 ORG_CD
 
-        // Link parishes to district_id
-        $this->db->query("
-            UPDATE parishes p
-            JOIN districts d ON TRIM(p.district_code) COLLATE utf8mb4_unicode_ci = TRIM(d.code) COLLATE utf8mb4_unicode_ci
-            SET p.district_id = d.id
-        ");
+            // Find district and its vicariate
+            $sd = $this->db->prepare("
+                SELECT d.id, d.name as district_name, d.code as district_code,
+                       v.name as diocese_name, v.code as diocese_code
+                FROM districts d
+                JOIN vicariates v ON d.vicariate_id = v.id
+                WHERE d.code = ?
+            ");
+            $sd->execute([$upprCd]);
+            $dist = $sd->fetch(PDO::FETCH_ASSOC);
+
+            // Match bcode from legacy search_bondang by parish name
+            $sb_stmt = $this->db->prepare("
+                SELECT BCODE FROM search_bondang 
+                WHERE TRIM(BONDANG) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci
+            ");
+            $sb_stmt->execute([trim($row['ORG_NM'])]);
+            $sb = $sb_stmt->fetch(PDO::FETCH_ASSOC);
+
+            $stmtParish->execute([
+                $orgCd,
+                $dist['id'] ?? null,
+                trim($row['ORG_NM']),
+                $sb['BCODE'] ?? null,
+                $dist['diocese_name'] ?? '',
+                $dist['diocese_code'] ?? '',
+                $dist['district_name'] ?? '',
+                $dist['district_code'] ?? '',
+                trim((string)($row['ORG_IN_TEL'] ?? ''))
+            ]);
+        }
+
+        echo "  - Parish migration complete: " . count($parishRows) . " records.\n";
     }
 
     private function migrateUsers() {

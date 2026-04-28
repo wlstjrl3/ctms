@@ -32,9 +32,9 @@ class UserService
             $whereSql .= " AND u.login_id LIKE ?";
             $params[] = "%{$filters['login_id']}%";
         }
-        if (!empty($filters['parish_code'])) {
-            $whereSql .= " AND p.parish_code LIKE ?";
-            $params[] = "%{$filters['parish_code']}%";
+        if (!empty($filters['org_cd'])) {
+            $whereSql .= " AND p.org_cd = ?";
+            $params[] = (int)$filters['org_cd'];
         }
         if (!empty($filters['role'])) {
             $whereSql .= " AND u.role = ?";
@@ -54,7 +54,7 @@ class UserService
             }
         }
 
-        $sql = "SELECT u.*, p.parish_name, p.parish_code 
+        $sql = "SELECT u.*, p.parish_name, p.org_cd
                 FROM users u
                 LEFT JOIN parishes p ON u.parish_id = p.id
                 {$whereSql}
@@ -77,9 +77,9 @@ class UserService
             $whereSql .= " AND u.login_id LIKE ?";
             $params[] = "%{$filters['login_id']}%";
         }
-        if (!empty($filters['parish_code'])) {
-            $whereSql .= " AND p.parish_code LIKE ?";
-            $params[] = "%{$filters['parish_code']}%";
+        if (!empty($filters['org_cd'])) {
+            $whereSql .= " AND p.org_cd = ?";
+            $params[] = (int)$filters['org_cd'];
         }
         if (!empty($filters['role'])) {
             $whereSql .= " AND u.role = ?";
@@ -120,7 +120,7 @@ class UserService
     */
     public function updateUser(int $id, array $data): bool
     {
-        $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['parish_code']]);
+        $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)($data['org_cd'] ?? 0)]);
         $parishId = $parish['id'] ?? null;
 
         $fields = ["login_id = ?", "name = ?", "parish_id = ?", "role = ?", "phone = ?", "fax = ?"];
@@ -142,7 +142,7 @@ class UserService
     */
     public function createUser(array $data): bool
     {
-        $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['parish_code']]);
+        $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)($data['org_cd'] ?? 0)]);
         $parishId = $parish['id'] ?? null;
 
         $sql = "INSERT INTO users 

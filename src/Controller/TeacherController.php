@@ -26,14 +26,14 @@ class TeacherController
 
         // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
         $role = $session->getRole();
-        $bcode = ($role === 'bondang') ? (string)$session->get('bcode', '') : '';
+        $orgCd = ($role === 'bondang') ? (string)$session->get('org_cd', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
         
         $filters = $_GET;
 
-        $teachers = $this->service->getTeacherList($bcode, $filters, $page, $pageSize);
-        $totalCount = $this->service->getTeacherCount($bcode, $filters);
+        $teachers = $this->service->getTeacherList($orgCd, $filters, $page, $pageSize);
+        $totalCount = $this->service->getTeacherCount($orgCd, $filters);
         $pageCount = (int)ceil($totalCount / $pageSize);
 
         $parishes = []; // No longer needed for select box, using text input instead
@@ -62,14 +62,14 @@ class TeacherController
 
         // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
         $role = $session->getRole();
-        $bcode = ($role === 'bondang') ? (string)$session->get('bcode', '') : '';
+        $orgCd = ($role === 'bondang') ? (string)$session->get('org_cd', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
         
         $filters = $_GET;
 
-        $teachers = $this->service->getTeacherList($bcode, $filters, $page, $pageSize);
-        $totalCount = $this->service->getTeacherCount($bcode, $filters);
+        $teachers = $this->service->getTeacherList($orgCd, $filters, $page, $pageSize);
+        $totalCount = $this->service->getTeacherCount($orgCd, $filters);
         
         $teacherIds = array_column($teachers, 'id');
         $allAwards = $this->service->getAwardsBatch($teacherIds);

@@ -7,18 +7,19 @@
         <?= ($page - 1) * $pageSize + $idx + 1 ?>
     </td>
     <td style="padding: 1rem;">
-        <span style="font-size: 0.85rem; color: var(--text-muted);"><?= htmlspecialchars($p['diocese_name']) ?></span>
-        <div style="font-size: 0.7rem; color: var(--accent);"><?= $p['diocese_code'] ?></div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);"><?= htmlspecialchars($p['diocese_name'] ?? '') ?></span>
     </td>
     <td style="padding: 1rem;">
-        <span style="font-size: 0.85rem;"><?= htmlspecialchars($p['district_name']) ?></span>
-        <div style="font-size: 0.7rem; color: var(--text-muted);"><?= $p['district_code'] ?></div>
+        <span style="font-size: 0.85rem;"><?= htmlspecialchars($p['district_name'] ?? '') ?></span>
     </td>
     <td style="padding: 1rem; font-weight: 600;">
         <?= htmlspecialchars($p['parish_name']) ?>성당
     </td>
-    <td style="padding: 1rem; font-family: monospace; font-weight: 700; color: var(--primary);">
-        <?= $p['parish_code'] ?>
+    <td style="padding: 1rem; font-family: monospace; font-size: 0.8rem; color: var(--accent);">
+        <?= $p['parish_code'] ?? '-' ?>
+    </td>
+    <td style="padding: 1rem; font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">
+        <?= $p['org_cd'] ?? '-' ?>
     </td>
 </tr>
 <?php endforeach; ?>

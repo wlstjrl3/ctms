@@ -28,8 +28,8 @@ $base = \App\Core\App::getInstance()->getBasePath();
             <input type="text" name="login_id" class="ajax-filter" placeholder="아이디 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
         <div class="form-group" style="margin-bottom: 0;">
-            <label>본당코드</label>
-            <input type="text" name="parish_code" class="ajax-filter" placeholder="코드 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <label>ORG_CD</label>
+            <input type="text" name="org_cd" class="ajax-filter" placeholder="코드 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>권한</label>
@@ -60,7 +60,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.8rem;">
                     <th style="padding: 1rem;">본당명 / 담당자</th>
                     <th style="padding: 1rem;">아이디</th>
-                    <th style="padding: 1rem;">본당코드</th>
+                    <th style="padding: 1rem;">ORG_CD</th>
                     <th style="padding: 1rem; text-align: center;">권한</th>
                     <th style="padding: 1rem;">연락처</th>
                     <th style="padding: 1rem; font-size: 0.8rem;">마지막 접속</th>

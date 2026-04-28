@@ -34,10 +34,6 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <input type="text" name="name" class="ajax-filter" placeholder="본당명 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-                <label>본당코드</label>
-                <input type="text" name="parish_code" class="ajax-filter" placeholder="코드 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
                 <label>대리구</label>
                 <select name="gcode" id="filter-gcode" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
                     <option value="">전체</option>
@@ -77,7 +73,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
                         <th style="padding: 1rem;">대리구</th>
                         <th style="padding: 1rem;">지구</th>
                         <th style="padding: 1rem;">본당명</th>
-                        <th style="padding: 1rem;">본당코드</th>
+                        <th style="padding: 1rem;">ORG_CD</th>
                     </tr>
                 </thead>
                 <tbody id="parish-table-body">
@@ -123,8 +119,8 @@ $base = \App\Core\App::getInstance()->getBasePath();
             </thead>
             <tbody id="district-list-body">
                 <?php foreach ($districts as $d): ?>
-                <tr class="clickable-row district-row" data-vic="<?= $d['GCODE'] ?>" data-name="<?= htmlspecialchars($d['JIGU']) ?>" data-code="<?= $d['JCODE'] ?>" onclick="editDistrict(<?= htmlspecialchars(json_encode($d)) ?>)" style="border-bottom: 1px solid var(--glass-border);">
-                    <td style="padding: 1rem;"><?= htmlspecialchars($d['GCODE']) ?></td>
+                <tr class="clickable-row district-row" data-vic="<?= $d['vicariate_id'] ?>" data-name="<?= htmlspecialchars($d['JIGU']) ?>" data-code="<?= $d['JCODE'] ?>" data-use-yn="<?= $d['USE_YN'] ?>" onclick="editDistrict(<?= htmlspecialchars(json_encode($d, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)" style="border-bottom: 1px solid var(--glass-border);">
+                    <td style="padding: 1rem;"><?= htmlspecialchars($d['GYOGU'] ?? '') ?></td>
                     <td style="padding: 1rem; font-weight: 600;"><?= htmlspecialchars($d['JIGU']) ?></td>
                     <td style="padding: 1rem; font-family: monospace; color: var(--primary);"><?= $d['JCODE'] ?></td>
                 </tr>
@@ -155,7 +151,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
             </thead>
             <tbody id="vicariate-list-body">
                 <?php foreach ($dioceses as $v): ?>
-                <tr class="clickable-row vicariate-row" data-name="<?= htmlspecialchars($v['GYOGU']) ?>" data-code="<?= $v['GCODE'] ?>" onclick="editVicariate(<?= htmlspecialchars(json_encode($v)) ?>)" style="border-bottom: 1px solid var(--glass-border);">
+                <tr class="clickable-row vicariate-row" data-name="<?= htmlspecialchars($v['GYOGU']) ?>" data-code="<?= $v['GCODE'] ?>" onclick="editVicariate(<?= htmlspecialchars(json_encode($v, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)" style="border-bottom: 1px solid var(--glass-border);">
                     <td style="padding: 1rem; font-weight: 600;"><?= htmlspecialchars($v['GYOGU']) ?></td>
                     <td style="padding: 1rem; font-family: monospace; color: var(--primary);"><?= $v['GCODE'] ?></td>
                 </tr>
@@ -187,8 +183,15 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <label id="code-label">코드</label>
                 <input type="text" name="code" id="modal-code" required style="width: 100%; padding: 0.5rem;">
             </div>
-            <div style="display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.5rem;">
-                <button type="button" id="modal-delete-btn" class="btn" style="display: none; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2);">삭제</button>
+            <div id="use-yn-group" class="form-group" style="display: none; margin-top: 1rem; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="use_yn" id="modal-use-yn" value="Y" checked style="width: auto;">
+                <label for="modal-use-yn" style="margin-bottom: 0; cursor: pointer;">현재 사용 중 (미체크 시 리스트에서 제외)</label>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 1.5rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="modal-delete-btn" class="btn" style="display: none; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2);">삭제</button>
+                    <button type="button" id="modal-unused-btn" class="btn" style="display: none; background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);">미사용 처리</button>
+                </div>
                 <div style="display: flex; gap: 1rem; margin-left: auto;">
                     <button type="button" class="btn" onclick="closeOrgModal()">취소</button>
                     <button type="submit" class="btn btn-primary">저장</button>
@@ -275,6 +278,9 @@ $base = \App\Core\App::getInstance()->getBasePath();
         form.reset();
         document.getElementById('org-id').value = '';
         deleteBtn.style.display = 'none';
+        document.getElementById('modal-unused-btn').style.display = 'none';
+        document.getElementById('use-yn-group').style.display = 'none';
+        document.getElementById('modal-use-yn').checked = true;
         
         if (type === 'vicariate') {
             document.getElementById('modal-title').textContent = '대리구 등록';
@@ -284,6 +290,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
             document.getElementById('modal-title').textContent = '지구 등록';
             form.action = '<?= $base ?>index.php?action=save_district';
             vicSelect.style.display = 'block';
+            document.getElementById('use-yn-group').style.display = 'flex';
         } else if (type === 'parish') {
             window.location.href = '<?= $base ?>index.php?page=parish_create';
             return;
@@ -316,11 +323,22 @@ $base = \App\Core\App::getInstance()->getBasePath();
         document.getElementById('modal-vicariate-id').value = d.vicariate_id;
         document.getElementById('modal-name').value = d.JIGU;
         document.getElementById('modal-code').value = d.JCODE;
+        document.getElementById('modal-use-yn').checked = (d.USE_YN === 'Y');
+        document.getElementById('use-yn-group').style.display = 'flex';
         
         deleteBtn.style.display = 'block';
         deleteBtn.onclick = () => {
             if(confirm('이 지구를 삭제하시겠습니까? 관련 본당 정보에 영향을 줄 수 있습니다.')) {
                 window.location.href = '<?= $base ?>index.php?action=delete_district&id=' + d.id;
+            }
+        };
+
+        const unusedBtn = document.getElementById('modal-unused-btn');
+        unusedBtn.style.display = 'block';
+        unusedBtn.onclick = () => {
+            if(confirm('이 지구를 미사용 처리하시겠습니까? 리스트에서 제외됩니다.')) {
+                document.getElementById('modal-use-yn').checked = false;
+                document.getElementById('org-form').submit();
             }
         };
     }

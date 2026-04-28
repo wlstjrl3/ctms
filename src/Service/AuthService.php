@@ -15,9 +15,9 @@ class AuthService
         $db = App::getInstance()->db();
         $session = App::getInstance()->session();
 
-        // Join with parishes to get the parish_code (legacy bcode)
+        // Join with parishes to get the org_cd
         $user = $db->fetch(
-            "SELECT u.*, p.parish_code 
+            "SELECT u.*, p.org_cd 
              FROM users u
              LEFT JOIN parishes p ON u.parish_id = p.id
              WHERE u.login_id = ?", 
@@ -39,7 +39,7 @@ class AuthService
                 'strLoginID'   => $user['login_id'],
                 'strLoginName' => $user['name'],
                 'ctms_admin'   => $user['role'],
-                'bcode'        => $user['parish_code'] ?? ''
+                'org_cd'       => $user['org_cd'] ?? ''
             ]);
 
             // Update last login

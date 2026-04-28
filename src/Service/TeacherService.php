@@ -24,10 +24,10 @@ class TeacherService
             $teacher = $this->db->fetch("SELECT * FROM teachers WHERE login_id = ?", [$loginId]);
             if (!$teacher) throw new \Exception("Teacher not found");
 
-            // 1. Get parish_id
+            // 1. Get parish_id by parish_id or org_cd
             $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
-            if (!$parishId && !empty($data['bcode'])) {
-                $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
+            if (!$parishId && !empty($data['org_cd'])) {
+                $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)$data['org_cd']]);
                 $parishId = $parish['id'] ?? null;
             }
 
@@ -115,8 +115,8 @@ class TeacherService
         try {
             $loginId = 'tmp' . date('YmdHis') . str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
             $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
-            if (!$parishId && !empty($data['bcode'])) {
-                $parish = $this->db->fetch("SELECT id FROM parishes WHERE parish_code = ?", [$data['bcode']]);
+            if (!$parishId && !empty($data['org_cd'])) {
+                $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)$data['org_cd']]);
                 $parishId = $parish['id'] ?? null;
             }
 
@@ -165,7 +165,7 @@ class TeacherService
 
     public function getTeacher(string $loginId): ?array
     {
-        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.parish_code as bcode
+        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.org_cd
                 FROM teachers t
                 LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
                 LEFT JOIN parishes p ON t.parish_id = p.id
@@ -184,7 +184,7 @@ class TeacherService
         return $teacher;
     }
 
-    public function getTeacherList(string $bcode, array $filters = [], int $page = 1, int $pageSize = 20): array
+    public function getTeacherList(string $orgCd, array $filters = [], int $page = 1, int $pageSize = 20): array
     {
         $offset = ($page - 1) * $pageSize;
         $whereSql = "WHERE 1=1";
@@ -201,9 +201,9 @@ class TeacherService
             $whereSql .= " AND t.status = 'active'";
         }
         
-        if (!empty($bcode)) {
-            $whereSql .= " AND p.parish_code = ?";
-            $params[] = $bcode;
+        if (!empty($orgCd)) {
+            $whereSql .= " AND p.org_cd = ?";
+            $params[] = (int)$orgCd;
         }
         
         if (!empty($filters['name'])) {
@@ -264,7 +264,7 @@ class TeacherService
             $params[] = "%{$filters['search']}%";
         }
 
-        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.parish_code as bcode, p.parish_name
+        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.org_cd, p.parish_name
                 FROM teachers t
                 LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
                 LEFT JOIN parishes p ON t.parish_id = p.id
@@ -275,7 +275,7 @@ class TeacherService
         return $this->db->fetchAll($sql, $params);
     }
 
-    public function getTeacherCount(string $bcode, array $filters = []): int
+    public function getTeacherCount(string $orgCd, array $filters = []): int
     {
         $whereSql = "WHERE 1=1";
         $params = [];
@@ -293,9 +293,9 @@ class TeacherService
             $whereSql .= " AND t.status = 'active'";
         }
 
-        if (!empty($bcode)) {
-            $whereSql .= " AND p.parish_code = ?";
-            $params[] = $bcode;
+        if (!empty($orgCd)) {
+            $whereSql .= " AND p.org_cd = ?";
+            $params[] = (int)$orgCd;
             $joinParishes = true;
         }
 

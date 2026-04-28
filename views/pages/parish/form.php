@@ -20,132 +20,108 @@ $base = \App\Core\App::getInstance()->getBasePath();
 
 <div class="glass-card" style="max-width: 700px; margin: 2rem auto; padding: 2.5rem;">
     <form id="parishForm" action="<?= $base ?>index.php?action=save_parish" method="POST">
-        <input type="hidden" name="mode" value="<?= $mode ?>">
-        <input type="hidden" name="idx" value="<?= $parish['id'] ?? '' ?>">
+        <input type="hidden" name="mode"  value="<?= $mode ?>">
+        <input type="hidden" name="idx"   value="<?= $parish['id'] ?? '' ?>">
         
         <div style="display: flex; flex-direction: column; gap: 2rem;">
             
-            <!-- Diocese (대리구) -->
+            <!-- Diocese (대리구) - 표시 전용 -->
             <div class="form-group">
-                <label>대리구 선택</label>
-                <div style="display: flex; gap: 1rem;">
-                    <select id="dioceseSelect" onchange="handleDioceseChange(this.value)" style="flex: 2;">
-                        <option value="">새로 입력...</option>
-                        <?php foreach ($dioceses as $d): ?>
-                            <option value="<?= $d['GCODE'] ?>" data-name="<?= htmlspecialchars($d['GYOGU']) ?>" <?= ($parish['diocese_code'] ?? '') === $d['GCODE'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($d['GYOGU']) ?> (<?= $d['GCODE'] ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <input type="text" name="gyogu" id="gyoguInput" value="<?= htmlspecialchars($parish['diocese_name'] ?? '') ?>" placeholder="대리구명" style="flex: 2;" required>
-                    <input type="text" name="gcode" id="gcodeInput" value="<?= htmlspecialchars($parish['diocese_code'] ?? '') ?>" placeholder="코드" style="flex: 1;" required>
-                </div>
+                <label>대리구</label>
+                <select id="dioceseSelect" onchange="handleDioceseChange(this.value)" style="width: 100%;">
+                    <option value="">전체 대리구</option>
+                    <?php foreach ($dioceses as $d): ?>
+                        <option value="<?= $d['GCODE'] ?>" data-name="<?= htmlspecialchars($d['GYOGU']) ?>"
+                            <?= ($parish['diocese_code'] ?? '') == $d['GCODE'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($d['GYOGU']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
-            <!-- District (지구) -->
+            <!-- District (지구) - 여기서 ORG_CD가 jcode로 전송됨 -->
             <div class="form-group">
-                <label>지구 선택</label>
-                <div style="display: flex; gap: 1rem;">
-                    <select id="districtSelect" onchange="handleDistrictChange(this.value)" style="flex: 2;">
-                        <option value="">새로 입력...</option>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                    <input type="text" name="jigu" id="jiguInput" value="<?= htmlspecialchars($parish['district_name'] ?? '') ?>" placeholder="지구명" style="flex: 2;" required>
-                    <input type="text" name="jcode" id="jcodeInput" value="<?= htmlspecialchars($parish['district_code'] ?? '') ?>" placeholder="코드" style="flex: 1;" required>
+                <label>지구 <span style="color: var(--danger);">*</span></label>
+                <select id="districtSelect" name="jcode" required style="width: 100%;">
+                    <option value="">지구 선택...</option>
+                </select>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
+                    ORG_INFO 지구 코드: <strong id="jcode-display"><?= $parish['district_code'] ?? '' ?></strong>
                 </div>
             </div>
 
             <!-- Parish (본당) -->
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
                 <div class="form-group">
-                    <label>본당명</label>
+                    <label>본당명 <span style="color: var(--danger);">*</span></label>
                     <div style="position: relative;">
                         <input type="text" name="bondang" value="<?= htmlspecialchars($parish['parish_name'] ?? '') ?>" required placeholder="예: 평화">
                         <span style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">성당</span>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>본당코드</label>
-                    <input type="text" name="bcode" value="<?= htmlspecialchars($parish['parish_code'] ?? '') ?>" maxlength="6" required placeholder="001">
+                    <label>본당코드 (BCODE)</label>
+                    <input type="text" name="bcode" value="<?= htmlspecialchars($parish['parish_code'] ?? '') ?>" maxlength="6" placeholder="A01">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">기존 시스템 호환용</div>
                 </div>
             </div>
+
+            <!-- Phone -->
+            <div class="form-group">
+                <label>전화번호</label>
+                <input type="text" name="phone" value="<?= htmlspecialchars($parish['phone'] ?? '') ?>" placeholder="031-000-0000">
+            </div>
+
+            <!-- ORG_CD display (read-only) -->
+            <?php if (!empty($parish['org_cd'])): ?>
+            <div class="glass-card" style="padding: 1rem; background: rgba(79,70,229,0.05);">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">ORG_INFO 연동 정보</div>
+                <div style="font-family: monospace; font-size: 0.9rem; margin-top: 0.5rem;">
+                    ORG_CD: <strong style="color: var(--primary);"><?= $parish['org_cd'] ?></strong>
+                    &nbsp;|&nbsp; 지구: <?= htmlspecialchars($parish['district_name'] ?? '-') ?>
+                    &nbsp;|&nbsp; 대리구: <?= htmlspecialchars($parish['diocese_name'] ?? '-') ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
         </div>
     </form>
 </div>
 
 <script>
-const allDistricts = <?= json_encode($allDistricts) ?>;
-const initialGcode = '<?= $parish['diocese_code'] ?? '' ?>';
-const initialJcode = '<?= $parish['district_code'] ?? '' ?>';
+// allDistricts now uses ORG_CD as id/JCODE
+const allDistricts   = <?= json_encode($allDistricts) ?>;
+const initialGcode   = '<?= $parish['diocese_code'] ?? '' ?>';
+const initialJcode   = '<?= $parish['district_code'] ?? '' ?>';
 
 function handleDioceseChange(gcode) {
-    const select = document.getElementById('dioceseSelect');
-    const nameInput = document.getElementById('gyoguInput');
-    const codeInput = document.getElementById('gcodeInput');
-    
-    if (gcode) {
-        const option = select.options[select.selectedIndex];
-        nameInput.value = option.getAttribute('data-name');
-        codeInput.value = gcode;
-        nameInput.readOnly = true;
-        codeInput.readOnly = true;
-    } else {
-        nameInput.value = '';
-        codeInput.value = '';
-        nameInput.readOnly = false;
-        codeInput.readOnly = false;
-    }
-    
     updateDistrictOptions(gcode);
 }
 
 function updateDistrictOptions(gcode) {
     const select = document.getElementById('districtSelect');
-    const nameInput = document.getElementById('jiguInput');
-    const codeInput = document.getElementById('jcodeInput');
-    
-    // Clear existing
-    select.innerHTML = '<option value="">새로 입력...</option>';
-    
-    const filtered = allDistricts.filter(d => !gcode || d.GCODE === gcode);
-    
+    select.innerHTML = '<option value="">지구 선택...</option>';
+
+    const filtered = allDistricts.filter(d => !gcode || String(d.vicariate_id) === String(gcode));
     filtered.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.JCODE;
-        opt.text = `${d.JIGU} (${d.JCODE})`;
+        const opt     = document.createElement('option');
+        opt.value     = d.JCODE;   // ORG_CD of the district (e.g. 13090001)
+        opt.text      = `${d.JIGU} (${d.JCODE})`;
         opt.setAttribute('data-name', d.JIGU);
-        if (d.JCODE === initialJcode) opt.selected = true;
+        if (String(d.JCODE) === String(initialJcode)) opt.selected = true;
         select.appendChild(opt);
     });
 
-    // If initial load and matches, lock it
-    if (select.value) {
-        nameInput.readOnly = true;
-        codeInput.readOnly = true;
-    }
+    updateJcodeDisplay();
 }
 
-function handleDistrictChange(jcode) {
-    const select = document.getElementById('districtSelect');
-    const nameInput = document.getElementById('jiguInput');
-    const codeInput = document.getElementById('jcodeInput');
-    
-    if (jcode) {
-        const option = select.options[select.selectedIndex];
-        nameInput.value = option.getAttribute('data-name');
-        codeInput.value = jcode;
-        nameInput.readOnly = true;
-        codeInput.readOnly = true;
-    } else {
-        nameInput.value = '';
-        codeInput.value = '';
-        nameInput.readOnly = false;
-        codeInput.readOnly = false;
-    }
+function updateJcodeDisplay() {
+    const val = document.getElementById('districtSelect').value;
+    document.getElementById('jcode-display').textContent = val || '-';
 }
 
-// Initial setup
+document.getElementById('districtSelect').addEventListener('change', updateJcodeDisplay);
+
 window.onload = () => {
     if (initialGcode) {
         handleDioceseChange(initialGcode);

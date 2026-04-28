@@ -16,7 +16,7 @@
         <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($u['name']) ?></div>
     </td>
     <td style="padding: 1rem; font-family: monospace;"><?= htmlspecialchars($u['login_id']) ?></td>
-    <td style="padding: 1rem; font-weight: 700; color: var(--accent);"><?= htmlspecialchars($u['parish_code'] ?: '-') ?></td>
+    <td style="padding: 1rem; font-weight: 700; color: var(--accent); font-family: monospace; font-size: 0.85rem;"><?= $u['org_cd'] ? $u['org_cd'] : '-' ?></td>
     <td style="padding: 1rem;">
         <span style="font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 4px; <?= $roleClass ?: 'background: var(--glass-bg); border: 1px solid var(--glass-border);' ?>">
             <?= $roleLabel ?>

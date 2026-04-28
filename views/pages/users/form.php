@@ -27,8 +27,9 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <input type="text" name="name" value="<?= htmlspecialchars($user['name'] ?? '') ?>" required placeholder="예: 평화본당">
             </div>
             <div class="form-group">
-                <label>본당 코드 (3자리)</label>
-                <input type="text" name="parish_code" value="<?= htmlspecialchars($user['parish_code'] ?? '') ?>" maxlength="3" required placeholder="예: 001">
+                <label>본당 ORG_CD</label>
+                <input type="number" name="org_cd" value="<?= htmlspecialchars($user['org_cd'] ?? '') ?>" required placeholder="예: 13110004">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">ORG_INFO.ORG_CD (1311로 시작하는 본당코드)</div>
             </div>
             <div class="form-group">
                 <label>아이디</label>
