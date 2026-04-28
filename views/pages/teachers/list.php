@@ -46,7 +46,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
             <label>상태</label>
             <select name="status" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
                 <option value="all" <?= ($filters['status'] ?? '') === 'all' ? 'selected' : '' ?>>전체</option>
-                <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>재직</option>
+                <option value="active" <?= ($filters['status'] ?? 'active') === 'active' ? 'selected' : '' ?>>재직</option>
                 <option value="furlough" <?= ($filters['status'] ?? '') === 'furlough' ? 'selected' : '' ?>>휴직</option>
                 <option value="retired" <?= ($filters['status'] ?? '') === 'retired' ? 'selected' : '' ?>>퇴직</option>
             </select>

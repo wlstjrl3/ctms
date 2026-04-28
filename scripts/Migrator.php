@@ -231,7 +231,11 @@ class Migrator {
 
         // PHASE 1: Active Teachers from bd_member_right
         echo "  - Phase 1: Migrating Active Teachers...\n";
-        $activeLegacy = $this->db->query("SELECT * FROM bd_member_right")->fetchAll(PDO::FETCH_ASSOC);
+        $activeLegacy = $this->db->query("
+            SELECT r.*, m.bitDelete 
+            FROM bd_member_right r
+            JOIN MPLUS_MEMBER_LIST m ON r.login_id = m.strLoginID
+        ")->fetchAll(PDO::FETCH_ASSOC);
         $today = date('Y-m-d');
         foreach ($activeLegacy as $row) {
             $parishId = null;
@@ -266,6 +270,10 @@ class Migrator {
             
             if ($isFurlough1 || $isFurlough2 || $isFurlough3) {
                 $status = 'furlough';
+            }
+
+            if ($row['bitDelete'] == '1') {
+                $status = 'retired';
             }
 
             $stmt->execute([

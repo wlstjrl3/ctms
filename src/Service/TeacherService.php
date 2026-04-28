@@ -198,7 +198,7 @@ class TeacherService
             $whereSql .= " AND t.status = ?";
             $params[] = $status;
         } else {
-            $whereSql .= " AND t.status != 'retired'";
+            $whereSql .= " AND t.status = 'active'";
         }
         
         if (!empty($bcode)) {
@@ -290,7 +290,7 @@ class TeacherService
             $whereSql .= " AND t.status = ?";
             $params[] = $status;
         } else {
-            $whereSql .= " AND t.status != 'retired'";
+            $whereSql .= " AND t.status = 'active'";
         }
 
         if (!empty($bcode)) {
