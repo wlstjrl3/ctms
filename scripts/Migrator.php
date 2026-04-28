@@ -120,12 +120,12 @@ class Migrator {
                 VALUES (?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
-                $row['BCODE'], 
-                $row['BONDANG'],
-                $row['GYOGU'],
-                $row['GCODE'],
-                $row['JIGU'],
-                $row['JCODE']
+                trim((string)$row['BCODE']), 
+                trim((string)$row['BONDANG']),
+                trim((string)($row['GYOGU'] ?? '')),
+                trim((string)($row['GCODE'] ?? '')),
+                trim((string)($row['JIGU'] ?? '')),
+                trim((string)($row['JCODE'] ?? ''))
             ]);
         }
 
@@ -138,23 +138,23 @@ class Migrator {
         
         $this->db->query("
             INSERT INTO vicariates (name, code)
-            SELECT DISTINCT diocese_name, diocese_code 
+            SELECT DISTINCT TRIM(diocese_name), TRIM(diocese_code)
             FROM parishes 
             WHERE diocese_name IS NOT NULL AND diocese_name != ''
         ");
 
         $this->db->query("
             INSERT IGNORE INTO districts (vicariate_id, name, code)
-            SELECT DISTINCT v.id, p.district_name, p.district_code
+            SELECT DISTINCT v.id, TRIM(p.district_name), TRIM(p.district_code)
             FROM parishes p
-            JOIN vicariates v ON p.diocese_code COLLATE utf8mb4_unicode_ci = v.code COLLATE utf8mb4_unicode_ci
+            JOIN vicariates v ON TRIM(p.diocese_code) COLLATE utf8mb4_unicode_ci = TRIM(v.code) COLLATE utf8mb4_unicode_ci
             WHERE p.district_name IS NOT NULL AND p.district_name != ''
         ");
 
         // Link parishes to district_id
         $this->db->query("
             UPDATE parishes p
-            JOIN districts d ON p.district_code COLLATE utf8mb4_unicode_ci = d.code COLLATE utf8mb4_unicode_ci
+            JOIN districts d ON TRIM(p.district_code) COLLATE utf8mb4_unicode_ci = TRIM(d.code) COLLATE utf8mb4_unicode_ci
             SET p.district_id = d.id
         ");
     }
@@ -239,8 +239,9 @@ class Migrator {
         $today = date('Y-m-d');
         foreach ($activeLegacy as $row) {
             $parishId = null;
+            $bcode = trim((string)$row['bcode']);
             foreach($parishes as $id => $code) {
-                if($code === $row['bcode']) { $parishId = $id; break; }
+                if($code === $bcode) { $parishId = $id; break; }
             }
 
             $birthDate = null;
