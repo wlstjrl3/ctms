@@ -166,7 +166,7 @@ function isChecked($val1, $val2) {
                                 </select>
                             </div>
                         </div>
-                        <div class="glass-card" style="padding: 2rem; margin-top: 1.5rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                        <div class="glass-card grid-2" style="padding: 2rem; margin-top: 1.5rem;">
                             <div class="form-group">
                                 <label>직급</label>
                                 <input type="text" name="position" value="<?= htmlspecialchars($teacher['position'] ?? '') ?>" placeholder="예: 평교사">
@@ -209,7 +209,7 @@ function isChecked($val1, $val2) {
                                     $furloughs = $teacher['furloughs'] ?? [];
                                     foreach ($furloughs as $f): 
                                 ?>
-                                <div class="furlough-item" style="display: grid; grid-template-columns: 200px 1fr 40px; gap: 1.5rem; align-items: center; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                                <div class="furlough-item grid-3-auto" style="align-items: center; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
                                     <select name="furlough_reason[]">
                                         <option value="0">사유 선택</option>
                                         <option value="1" <?= isSelected($f['reason'] ?? '', '1') ?>>군복무</option>
@@ -247,7 +247,7 @@ function isChecked($val1, $val2) {
                             </button>
                         </div>
                         <div class="glass-card" style="padding: 1.5rem;">
-                            <div id="awards-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div id="awards-container" class="grid-2">
                                 <?php 
                                     $awards = $teacher['awards'] ?? [];
                                     foreach ($awards as $award): 
@@ -293,7 +293,7 @@ function isChecked($val1, $val2) {
                         $eduDetails = $teacher['edu_details'] ?? [];
                         foreach ($eduDetails as $edu): 
                     ?>
-                    <div class="edu-item glass-card" style="padding: 1rem; display: grid; grid-template-columns: 1fr 200px 40px; gap: 1.5rem; align-items: center;">
+                    <div class="edu-item glass-card grid-3-auto" style="padding: 1rem; align-items: center;">
                         <div class="form-group" style="margin: 0;">
                             <input type="text" name="edu_title[]" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" placeholder="교육 과목명">
                         </div>

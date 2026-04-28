@@ -97,6 +97,25 @@ body::before {
     gap: 2rem;
 }
 
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.grid-3-auto {
+    display: grid;
+    grid-template-columns: 200px 1fr 40px;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .grid-2, .grid-3-auto {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+}
+
 /* Typography */
 h1, h2, h3 {
     letter-spacing: -0.025em;
