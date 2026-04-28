@@ -14,12 +14,9 @@ function isChecked($val1, $val2) {
 }
 ?>
 
-<div class="top-bar">
-    <h1 id="page-title"><?= $title ?></h1>
-    <div style="display: flex; gap: 1rem;">
-        <button class="btn" onclick="history.back()" style="background: var(--glass-bg); color: var(--text-main);">취소</button>
-        <button class="btn btn-primary" onclick="document.getElementById('teacherForm').submit()">저장하기</button>
-    </div>
+<div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem;">
+    <button class="btn" onclick="history.back()" style="background: var(--glass-bg); color: var(--text-main);">취소</button>
+    <button class="btn btn-primary" onclick="document.getElementById('teacherForm').submit()">저장하기</button>
 </div>
 
 <div class="toast-container" id="toast-container"></div>
@@ -28,7 +25,7 @@ function isChecked($val1, $val2) {
     <input type="hidden" name="mode" value="<?= $mode ?>">
     <input type="hidden" name="login_id" value="<?= $teacher['login_id'] ?? '' ?>">
 
-    <div class="dashboard-grid" style="display: grid; grid-template-columns: 300px 1fr; gap: 2rem;">
+    <div class="dashboard-grid">
         
         <!-- Left Column: Photo & Profile Summary -->
         <aside>

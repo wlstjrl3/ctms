@@ -91,6 +91,12 @@ body::before {
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+}
+
 /* Typography */
 h1, h2, h3 {
     letter-spacing: -0.025em;
@@ -181,21 +187,84 @@ option {
     padding: 0 1.5rem;
 }
 
+
+
 @media (max-width: 1024px) {
+    :root {
+        font-size: 14px;
+    }
+
+    .layout {
+        display: block !important;
+    }
+    
+    .sidebar {
+        z-index: 1000 !important;
+    }
+    
     .main-content {
-        padding: 1rem !important;
+        padding: 0.5rem !important;
+        margin-top: 0 !important;
     }
+    
+    .top-bar {
+        margin-top: 0 !important;
+        padding-top: 0.5rem !important;
+    }
+    
     .glass-card {
-        padding: 1rem !important;
+        padding: 1rem 0.75rem !important;
+        border-radius: 8px;
     }
+    
     .dashboard-grid {
+        grid-template-columns: 1fr !important;
         gap: 1rem !important;
     }
-    .mobile-hide { display: none !important; }
+
+    /* Fix: Only sidebar should be fixed on mobile, not all asides */
+    aside.sidebar {
+        position: fixed !important;
+    }
+    
+    /* Photo section in teacher form */
+    .dashboard-grid aside {
+        position: static !important;
+        max-width: 400px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    .dashboard-grid aside .glass-card {
+        position: static !important; /* Disable sticky on mobile */
+    }
+
+    .mobile-hide, .m-hide { display: none !important; }
+}
+
+@media (max-width: 768px) {
+    .top-bar {
+        flex-direction: row !important;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem !important;
+    }
+    
+    .top-bar h1 {
+        font-size: 1.2rem !important;
+    }
+
+    .table-container {
+        margin: 0 -0.5rem;
+        width: calc(100% + 1rem);
+        overflow-x: auto;
+    }
 }
 
 @media (min-width: 1025px) {
     .mobile-only { display: none !important; }
+    .m-show { display: none !important; }
+    /* m-hide is display: initial by default, which works for most elements */
 }
 
 .clickable-row {

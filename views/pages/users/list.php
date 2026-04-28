@@ -9,8 +9,7 @@
 $base = \App\Core\App::getInstance()->getBasePath();
 ?>
 
-<div class="top-bar">
-    <h1 id="page-title"><?= $title ?></h1>
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;" class="m-hide">
     <button class="btn btn-primary" onclick="window.location.href='<?= $base ?>index.php?page=user_create'">
         ➕ 신규 본당 계정 등록
     </button>

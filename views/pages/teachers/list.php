@@ -8,13 +8,10 @@
 $base = \App\Core\App::getInstance()->getBasePath();
 ?>
 
-<div class="top-bar">
-    <h1 id="page-title">본당교사 관리</h1>
-    <div style="display: flex; gap: 1rem; align-items: center;">
-        <button class="btn btn-primary" onclick="window.location.href='<?= $base ?>index.php?page=teacher_create'" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
-            ➕ 교사 등록
-        </button>
-    </div>
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;" class="m-hide">
+    <button class="btn btn-primary" onclick="window.location.href='<?= $base ?>index.php?page=teacher_create'" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+        ➕ 교사 등록
+    </button>
 </div>
 
 <!-- Filters -->
@@ -101,13 +98,13 @@ $base = \App\Core\App::getInstance()->getBasePath();
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.8rem;">
-                    <th style="padding: 1rem; width: 60px;">No</th>
+                    <th style="padding: 1rem; width: 60px;" class="m-hide">No</th>
                     <th style="padding: 1rem;">성명(세례명)</th>
                     <th style="padding: 1rem;">본당</th>
                     <th style="padding: 1rem;">소속/직책</th>
-                    <th style="padding: 1rem;">근속 기간</th>
-                    <th style="padding: 1rem;">연락처</th>
-                    <th style="padding: 1rem; text-align: center;">수상</th>
+                    <th style="padding: 1rem;" class="m-hide">근속 기간</th>
+                    <th style="padding: 1rem;" class="m-hide">연락처</th>
+                    <th style="padding: 1rem; text-align: center;" class="m-hide">수상</th>
                 </tr>
             </thead>
             <tbody id="teacher-table-body">

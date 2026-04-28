@@ -4,7 +4,7 @@
     $age = $birthYear ? (int)date('Y') - $birthYear : '-';
 ?>
 <tr class="clickable-row" onclick="window.location.href='<?= $base ?>index.php?page=teacher_edit&login_id=<?= urlencode($t['login_id']) ?>'" style="border-bottom: 1px solid var(--glass-border);">
-    <td style="padding: 1rem; font-family: monospace; color: var(--text-muted);"><?= $viewNum ?></td>
+    <td style="padding: 1rem; font-family: monospace; color: var(--text-muted);" class="m-hide"><?= $viewNum ?></td>
     <td style="padding: 1rem;">
         <div style="font-weight: 600;"><?= htmlspecialchars($t['name']) ?> (<?= htmlspecialchars($t['baptismal_name']) ?>)</div>
         <div style="font-size: 0.75rem; color: var(--text-muted);">
@@ -28,7 +28,7 @@
         <span style="font-size: 0.85rem; font-weight: 500; color: var(--accent);"><?= $academyName ?></span>
         <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($t['position'] ?: '교사') ?></div>
     </td>
-    <td style="padding: 1rem;">
+    <td style="padding: 1rem;" class="m-hide">
         <?php if (!empty($t['cs_year'])): ?>
             <div style="font-size: 0.85rem; color: var(--success); font-weight: 600;">
                 <?php
@@ -42,11 +42,11 @@
             <span style="color: var(--text-muted);">-</span>
         <?php endif; ?>
     </td>
-    <td style="padding: 1rem; font-size: 0.85rem;">
+    <td style="padding: 1rem; font-size: 0.85rem;" class="m-hide">
         <div><?= htmlspecialchars($t['mobile_phone']) ?></div>
         <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($t['home_phone']) ?></div>
     </td>
-    <td style="padding: 1rem; text-align: center;">
+    <td style="padding: 1rem; text-align: center;" class="m-hide">
         <div style="display: flex; gap: 0.25rem; justify-content: center;">
             <?php foreach ($t['awards'] ?? [] as $award): ?>
                 <span title="<?= $award['tml_year'] ?>년 <?= $award['tml'] ?>년상" style="cursor: help;">🏅</span>
