@@ -92,6 +92,12 @@ class Migrator {
             $this->db->query("ALTER TABLE parishes ADD INDEX idx_org_cd (org_cd)");
         }
         
+        // Add USE_YN to ORG_INFO if not exists
+        $useYnCol = $this->db->query("SHOW COLUMNS FROM ORG_INFO LIKE 'USE_YN'")->fetchAll();
+        if (empty($useYnCol)) {
+            $this->db->query("ALTER TABLE ORG_INFO ADD COLUMN USE_YN CHAR(1) DEFAULT 'Y'");
+        }
+
         // Update teachers status enum to match our code ('furlough' instead of 'on_leave')
         $this->db->query("ALTER TABLE teachers MODIFY COLUMN status ENUM('active', 'furlough', 'retired') DEFAULT 'active'");
     }
