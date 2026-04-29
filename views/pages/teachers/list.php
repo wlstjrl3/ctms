@@ -54,9 +54,9 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 <option value="all" <?= ($filters['academy'] ?? '') === 'all' ? 'selected' : '' ?>>전체</option>
                 <option value="1" <?= ($filters['academy'] ?? '') === '1' ? 'selected' : '' ?>>초등부</option>
                 <option value="2" <?= ($filters['academy'] ?? '') === '2' ? 'selected' : '' ?>>중고등부</option>
-                <option value="125" <?= ($filters['academy'] ?? '') === '125' ? 'selected' : '' ?>>초·중고등부</option>
-                <option value="3" <?= ($filters['academy'] ?? '') === '3' ? 'selected' : '' ?>>대건</option>
-                <option value="4" <?= ($filters['academy'] ?? '') === '4' ? 'selected' : '' ?>>장애아</option>
+                <option value="5" <?= ($filters['academy'] ?? '') === '5' ? 'selected' : '' ?>>대건</option>
+                <option value="3" <?= ($filters['academy'] ?? '') === '3' ? 'selected' : '' ?>>장애아</option>
+                <option value="4" <?= ($filters['academy'] ?? '') === '4' ? 'selected' : '' ?>>초·중고 통합</option>
             </select>
         </div>
         <div class="form-group" style="margin-bottom: 0;">

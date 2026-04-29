@@ -61,7 +61,7 @@ $base = \App\Core\App::getInstance()->getBasePath();
         'middle_high' => '중고등부',
         'daegun' => '대건',
         'disabled' => '장애아',
-        'integrated' => '통합/기타'
+        'integrated' => '초·중고 통합'
     ];
     ?>
 
