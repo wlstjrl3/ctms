@@ -149,7 +149,13 @@ class Migrator {
         if (!$hasEduState) $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_state VARCHAR(10) DEFAULT '0' AFTER edu_level");
         
         if (!$hasEduPlace && $hasEduWhere) {
-            $this->db->query("ALTER TABLE edu_schedule_new CHANGE edu_where edu_place VARCHAR(100)");
+            $this->db->query("ALTER TABLE edu_schedule_new CHANGE COLUMN edu_where edu_place VARCHAR(100)");
+        }
+
+        // Fix for MySQL strict mode: ensure edu_time is nullable if it exists
+        $timeCol = $this->db->query("SHOW COLUMNS FROM edu_schedule_new LIKE 'edu_time'")->fetchAll();
+        if (!empty($timeCol)) {
+            $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_time VARCHAR(50) DEFAULT NULL");
         } elseif (!$hasEduPlace) {
             $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_place VARCHAR(100) AFTER edu_subject");
         }
