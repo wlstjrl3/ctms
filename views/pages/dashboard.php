@@ -24,7 +24,7 @@ $base = $app->getBasePath();
                 </thead>
                 <tbody>
                     <?php foreach ($data['schedules'] as $row): ?>
-                    <tr class="clickable-row" onclick="showDetail(<?= $row['idx_num'] ?>)" style="border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s;">
+                    <tr class="clickable-row" onclick="showDetail(<?= htmlspecialchars(json_encode($row)) ?>)" style="border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: background 0.2s;">
                         <td style="padding: 1rem;">
                             <div style="font-weight: 600;"><?= htmlspecialchars($row['edu_subject']) ?></div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">
@@ -119,66 +119,57 @@ $base = $app->getBasePath();
 </style>
 
 <script>
-    async function showDetail(idx) {
+    function showDetail(data) {
         const modal = document.getElementById('detailModal');
         const body = document.getElementById('modalBody');
         modal.style.display = 'flex';
-        body.innerHTML = '<p style="text-align:center; padding: 2rem;">로딩 중...</p>';
 
-        try {
-            const response = await fetch(`<?= $base ?>index.php?action=schedule_detail&idx=${idx}`);
-            const data = await response.json();
-
-            if (!data || data.error) {
-                body.innerHTML = `<p style="text-align:center; padding: 2rem;">데이터를 찾을 수 없습니다.</p>`;
-                return;
-            }
-
-            const courseName = data.standardized_name || data.edu_subject || '알 수 없는 교육';
-            const eduDate = data.edu_date ? data.edu_date.substring(0, 16) : '미정';
-
-            body.innerHTML = `
-                <div style="margin-bottom: 2rem;">
-                    <span class="badge badge-active" style="margin-bottom: 1rem; display: inline-block;">상세 정보</span>
-                    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">${courseName}</h2>
-                    ${data.standardized_name ? `<p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">[공식 명칭] ${data.edu_subject}</p>` : ''}
-                    <p style="color: var(--text-muted); font-size: 0.85rem;">${data.edu_year || ''}년 교육 과정</p>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                    <div class="info-group">
-                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">장소</label>
-                        <div style="font-weight: 600;">📍 ${data.edu_place || '미정'}</div>
-                    </div>
-                    <div class="info-group">
-                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">일시</label>
-                        <div style="font-weight: 600;">⏰ ${eduDate}</div>
-                    </div>
-                    <div class="info-group">
-                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">참가비</label>
-                        <div style="font-weight: 600; color: var(--accent);">₩ ${data.edu_money ? parseInt(data.edu_money).toLocaleString() : '0'}</div>
-                    </div>
-                    <div class="info-group">
-                        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">정원</label>
-                        <div style="font-weight: 600;">👥 ${data.edu_maxp || '무제한'} 명</div>
-                    </div>
-                </div>
-
-                <div style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
-                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">교육 내용</label>
-                    <div style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">
-                        ${data.edu_content || '내용이 없습니다.'}
-                    </div>
-                </div>
-
-                <div style="margin-top: 2.5rem; text-align: right;">
-                    <button class="btn btn-primary" onclick="closeDetailModal()">닫기</button>
-                </div>
-            `;
-        } catch (err) {
-            console.error(err);
-            body.innerHTML = `<p style="color:var(--danger); text-align:center; padding: 2rem;">데이터를 불러오는 중 오류가 발생했습니다.</p>`;
+        if (!data) {
+            body.innerHTML = `<p style="text-align:center; padding: 2rem;">데이터를 찾을 수 없습니다.</p>`;
+            return;
         }
+
+        const courseName = data.standardized_name || data.edu_subject || '알 수 없는 교육';
+        const eduDate = data.edu_date ? data.edu_date.substring(0, 16).replace('T', ' ') : '미정';
+
+        body.innerHTML = `
+            <div style="margin-bottom: 2rem;">
+                <span class="badge badge-active" style="margin-bottom: 1rem; display: inline-block;">상세 정보</span>
+                <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">${courseName}</h2>
+                ${data.standardized_name && data.standardized_name !== data.edu_subject ? `<p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">[공식 명칭] ${data.edu_subject}</p>` : ''}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">${data.edu_year || ''}년 교육 과정</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="info-group">
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">장소</label>
+                    <div style="font-weight: 600;">📍 ${data.edu_place || '미정'}</div>
+                </div>
+                <div class="info-group">
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">일시</label>
+                    <div style="font-weight: 600;">⏰ ${eduDate}</div>
+                </div>
+                <div class="info-group">
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">참가비</label>
+                    <div style="font-weight: 600; color: var(--accent);">₩ ${data.edu_money ? parseInt(data.edu_money).toLocaleString() : '0'}</div>
+                </div>
+                <div class="info-group">
+                    <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">정원</label>
+                    <div style="font-weight: 600;">👥 ${data.edu_maxp || '무제한'} 명</div>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">교육 내용</label>
+                <div style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">
+                    ${data.edu_content || '내용이 없습니다.'}
+                </div>
+            </div>
+
+            <div style="margin-top: 2.5rem; text-align: right;">
+                <button class="btn btn-primary" onclick="closeDetailModal()">닫기</button>
+            </div>
+        `;
     }
 
     function closeDetailModal() {
