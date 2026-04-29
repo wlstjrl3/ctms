@@ -61,7 +61,13 @@ $base = \App\Core\App::getInstance()->getBasePath();
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>직책</label>
-            <input type="text" name="position" class="ajax-filter" value="<?= htmlspecialchars($filters['position'] ?? '') ?>" placeholder="직책 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+            <select name="position" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <option value="">전체</option>
+                <option value="교사" <?= ($filters['position'] ?? '') === '교사' ? 'selected' : '' ?>>교사</option>
+                <option value="교감" <?= ($filters['position'] ?? '') === '교감' ? 'selected' : '' ?>>교감</option>
+                <option value="교무" <?= ($filters['position'] ?? '') === '교무' ? 'selected' : '' ?>>교무</option>
+                <option value="총무" <?= ($filters['position'] ?? '') === '총무' ? 'selected' : '' ?>>총무</option>
+            </select>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
             <label>근속연수</label>

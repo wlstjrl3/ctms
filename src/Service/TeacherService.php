@@ -212,9 +212,10 @@ class TeacherService
             $whereSql .= " AND t.department = ?";
             $params[] = ($dept === $mappedDept) ? $dept : $mappedDept;
         }
-        if (!empty($filters['pos'])) {
-            $whereSql .= " AND t.position LIKE ?";
-            $params[] = "%{$filters['pos']}%";
+        $pos = $filters['position'] ?? $filters['pos'] ?? '';
+        if (!empty($pos)) {
+            $whereSql .= " AND t.position = ?";
+            $params[] = $pos;
         }
         if (!empty($filters['phone'])) {
             $whereSql .= " AND (t.mobile_phone LIKE ? OR t.home_phone LIKE ?)";
@@ -308,9 +309,10 @@ class TeacherService
             $params[] = ($dept === $mappedDept) ? $dept : $mappedDept;
         }
 
-        if (!empty($filters['pos'])) {
-            $whereSql .= " AND t.position LIKE ?";
-            $params[] = "%{$filters['pos']}%";
+        $pos = $filters['position'] ?? $filters['pos'] ?? '';
+        if (!empty($pos)) {
+            $whereSql .= " AND t.position = ?";
+            $params[] = $pos;
         }
 
         if (!empty($filters['phone'])) {
@@ -424,5 +426,20 @@ class TeacherService
             $this->db->query("INSERT INTO teacher_awards (teacher_id, award_year, award_type) VALUES (?, ?, ?)", 
                 [$teacherId, $award['tml_year'], $award['tml']]);
         }
+    }
+
+    /**
+     * Map edu_level codes to human-readable names
+     */
+    public function getGradeName($level): string
+    {
+        $map = [
+            '0' => '통합',
+            '1' => '초등부',
+            '2' => '중고등부',
+            '3' => '장애인부',
+            '4' => '기타'
+        ];
+        return $map[(string)$level] ?? '기타';
     }
 }

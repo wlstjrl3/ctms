@@ -10,66 +10,50 @@ class StatisticsService
     public function __construct(private Database $db) {}
 
     /**
-     * Get teacher distribution by Academy (Department)
+     * Get teacher distribution by Department (Academy)
+     * Filters for currently active ('active') teachers only.
      */
     public function getTeacherStatsByAcademy(string $bcode = ''): array
     {
-        $where = "WHERE 1=1";
+        $where = "WHERE t.status = 'active'";
         $params = [];
+        
+        $joinParish = "";
         if ($bcode) {
-            $where .= " AND bcode = ?";
-            $params[] = $bcode;
+            $joinParish = " JOIN parishes p ON t.parish_id = p.id ";
+            $where .= " AND p.org_cd = ?";
+            $params[] = (int)$bcode;
         }
 
-        $sql = "SELECT academy, COUNT(*) as count 
-                FROM bd_member_right 
+        $sql = "SELECT department as academy, COUNT(*) as count 
+                FROM teachers t 
+                {$joinParish}
                 {$where} 
-                GROUP BY academy";
+                GROUP BY department";
         return $this->db->fetchAll($sql, $params);
     }
 
     /**
-     * Get teacher distribution by Position (type_num)
+     * Get teacher distribution by Position
+     * Filters for currently active ('active') teachers only.
      */
     public function getTeacherStatsByPosition(string $bcode = ''): array
     {
-        $where = "WHERE 1=1";
+        $where = "WHERE t.status = 'active'";
         $params = [];
+
+        $joinParish = "";
         if ($bcode) {
-            $where .= " AND bcode = ?";
-            $params[] = $bcode;
+            $joinParish = " JOIN parishes p ON t.parish_id = p.id ";
+            $where .= " AND p.org_cd = ?";
+            $params[] = (int)$bcode;
         }
 
-        $sql = "SELECT type_num, COUNT(*) as count 
-                FROM bd_member_right 
+        $sql = "SELECT position, COUNT(*) as count 
+                FROM teachers t 
+                {$joinParish}
                 {$where} 
-                GROUP BY type_num";
+                GROUP BY position";
         return $this->db->fetchAll($sql, $params);
-    }
-
-    /**
-     * Get Mass time statistics (legacy css_mng_info)
-     */
-    public function getMassTimeStats(string $academy = '1'): array
-    {
-        // academy 1: Kids, 2: Youth
-        $sql = "SELECT mng_day, mng_hour, COUNT(*) as count 
-                FROM css_mng_info 
-                WHERE academy = ? AND mng_gubun = '1' AND mng_yn = '1'
-                GROUP BY mng_day, mng_hour 
-                ORDER BY mng_day, mng_hour";
-        return $this->db->fetchAll($sql, [$academy]);
-    }
-
-    /**
-     * Get Hymnal book statistics (legacy css_info_es)
-     */
-    public function getHymnalStats(): array
-    {
-        $sql = "SELECT sbook_source, COUNT(*) as count 
-                FROM css_info_es 
-                WHERE sbook_source IS NOT NULL
-                GROUP BY sbook_source";
-        return $this->db->fetchAll($sql);
     }
 }

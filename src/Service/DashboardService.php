@@ -20,25 +20,13 @@ class DashboardService
     public function getMonthlySchedules(int $limit = 10): array
     {
         $sql = "SELECT * FROM edu_schedule_new 
-                WHERE MONTH(edu_sdate) = MONTH(CURRENT_DATE()) 
-                OR MONTH(edu_edate) = MONTH(CURRENT_DATE())
-                ORDER BY edu_sdate DESC 
+                WHERE MONTH(edu_date) = MONTH(CURRENT_DATE()) 
+                AND YEAR(edu_date) = YEAR(CURRENT_DATE())
+                ORDER BY edu_date ASC 
                 LIMIT ?";
         return $this->db->fetchAll($sql, [$limit]);
     }
 
-    /**
-     * Get application (registration) schedules for the current month
-     */
-    public function getMonthlyApplications(int $limit = 10): array
-    {
-        $sql = "SELECT * FROM edu_schedule_new 
-                WHERE MONTH(edu_to_sdate) = MONTH(CURRENT_DATE()) 
-                OR MONTH(edu_to_edate) = MONTH(CURRENT_DATE())
-                ORDER BY edu_to_sdate DESC 
-                LIMIT ?";
-        return $this->db->fetchAll($sql, [$limit]);
-    }
 
     /**
      * Get recent login history (Office Admin only)

@@ -104,6 +104,22 @@ class Migrator {
 
         // --- Education System Updates ---
         
+        // 0. Ensure edu_schedule_new table exists
+        $this->db->query("CREATE TABLE IF NOT EXISTS edu_schedule_new (
+            idx_num INT AUTO_INCREMENT PRIMARY KEY,
+            course_id INT,
+            edu_subject VARCHAR(255),
+            edu_year VARCHAR(10),
+            edu_date DATETIME,
+            edu_place VARCHAR(100),
+            edu_level VARCHAR(2),
+            edu_state VARCHAR(10) DEFAULT '0',
+            edu_money VARCHAR(10),
+            edu_maxp INT,
+            edu_content TEXT,
+            reg_date DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // 1. education_courses schema
         $cols = $this->db->query("SHOW COLUMNS FROM education_courses")->fetchAll(PDO::FETCH_ASSOC);
         $hasActive = false;

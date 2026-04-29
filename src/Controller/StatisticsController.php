@@ -28,9 +28,6 @@ class StatisticsController
         // Fetch various stats
         $academyStats = $this->service->getTeacherStatsByAcademy($bcode);
         $positionStats = $this->service->getTeacherStatsByPosition($bcode);
-        $kidsMassStats = $this->service->getMassTimeStats('1');
-        $youthMassStats = $this->service->getMassTimeStats('2');
-        $hymnalStats = $this->service->getHymnalStats();
 
         $title = '각종 통계';
         

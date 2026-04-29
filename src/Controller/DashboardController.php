@@ -29,7 +29,6 @@ class DashboardController
         $role = $session->getRole();
         $data = [
             'schedules' => $this->service->getMonthlySchedules(),
-            'applications' => $this->service->getMonthlyApplications(),
         ];
 
         if ($role === 'casuwon' || $role === 'diocese') {

@@ -55,6 +55,12 @@ function isChecked($val1, $val2) {
                         </span>
                     </div>
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted);">직책</span> 
+                        <span style="color: var(--accent); font-weight: 600;">
+                            <?= htmlspecialchars($teacher['position'] ?: '교사') ?>
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
                         <span style="color: var(--text-muted);">근속</span> 
                         <span style="color: var(--accent); font-weight: 600;">
                             <?php
@@ -167,10 +173,15 @@ function isChecked($val1, $val2) {
                             </div>
                         </div>
                         <div class="glass-card grid-2" style="padding: 2rem; margin-top: 1.5rem;">
-                            <div class="form-group">
-                                <label>직급</label>
-                                <input type="text" name="position" value="<?= htmlspecialchars($teacher['position'] ?? '') ?>" placeholder="예: 평교사">
-                            </div>
+                             <div class="form-group">
+                                 <label>직책</label>
+                                 <select name="position">
+                                     <option value="교사" <?= isSelected($teacher['position'] ?? '', '교사') ?>>교사</option>
+                                     <option value="교감" <?= isSelected($teacher['position'] ?? '', '교감') ?>>교감</option>
+                                     <option value="교무" <?= isSelected($teacher['position'] ?? '', '교무') ?>>교무</option>
+                                     <option value="총무" <?= isSelected($teacher['position'] ?? '', '총무') ?>>총무</option>
+                                 </select>
+                             </div>
                             <div class="form-group">
                                 <label>근속 기준 연월</label>
                                 <div style="display: flex; gap: 0.75rem;">
@@ -569,8 +580,8 @@ function previewImage(input) {
         const modal = document.getElementById('educationModal');
         modal.style.display = 'flex';
         document.getElementById('edu_search_keyword').value = '';
-        document.getElementById('edu_search_results').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>';
         document.getElementById('edu_search_keyword').focus();
+        searchEducation();
     }
 
     function closeEducationModal() {
