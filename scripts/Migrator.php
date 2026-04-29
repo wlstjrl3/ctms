@@ -135,16 +135,23 @@ class Migrator {
         // 2. edu_schedule_new schema synchronization
         $sCols = $this->db->query("SHOW COLUMNS FROM edu_schedule_new")->fetchAll(PDO::FETCH_ASSOC);
         $hasCourseId = false;
+        $hasIdxNum = false;
+        $hasIdx = false;
         $hasEduPlace = false;
         $hasEduWhere = false;
         $hasEduState = false;
         foreach ($sCols as $c) {
             if ($c['Field'] === 'course_id') $hasCourseId = true;
+            if ($c['Field'] === 'idx_num') $hasIdxNum = true;
+            if ($c['Field'] === 'idx') $hasIdx = true;
             if ($c['Field'] === 'edu_place') $hasEduPlace = true;
             if ($c['Field'] === 'edu_where') $hasEduWhere = true;
             if ($c['Field'] === 'edu_state') $hasEduState = true;
         }
 
+        if (!$hasIdxNum && $hasIdx) {
+            $this->db->query("ALTER TABLE edu_schedule_new CHANGE COLUMN idx idx_num INT AUTO_INCREMENT PRIMARY KEY");
+        }
         if (!$hasCourseId) $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN course_id INT AFTER idx_num");
         if (!$hasEduState) $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_state VARCHAR(10) DEFAULT '0' AFTER edu_level");
         
