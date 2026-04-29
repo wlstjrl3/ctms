@@ -152,11 +152,17 @@ class Migrator {
             $this->db->query("ALTER TABLE edu_schedule_new CHANGE COLUMN edu_where edu_place VARCHAR(100)");
         }
 
-        // Fix for MySQL strict mode: ensure edu_time is nullable if it exists
-        $timeCol = $this->db->query("SHOW COLUMNS FROM edu_schedule_new LIKE 'edu_time'")->fetchAll();
-        if (!empty($timeCol)) {
-            $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_time VARCHAR(50) DEFAULT NULL");
-        } elseif (!$hasEduPlace) {
+        // Defensive fix for all potential legacy columns that might not have defaults in Strict Mode
+        $legacyCols = ['edu_sdate', 'edu_edate', 'edu_time', 'edu_where', 'edu_money', 'edu_maxp'];
+        foreach ($legacyCols as $col) {
+            $check = $this->db->query("SHOW COLUMNS FROM edu_schedule_new LIKE '$col'")->fetchAll();
+            if (!empty($check)) {
+                $type = (strpos($col, 'maxp') !== false) ? 'INT' : 'VARCHAR(100)';
+                $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN $col $type DEFAULT NULL");
+            }
+        }
+
+        if (!$hasEduPlace) {
             $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_place VARCHAR(100) AFTER edu_subject");
         }
 
