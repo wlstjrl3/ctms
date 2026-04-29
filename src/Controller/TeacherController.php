@@ -32,6 +32,9 @@ class TeacherController
         
         $filters = $_GET;
 
+        $educationService = new \App\Service\EducationService();
+        $courses = $educationService->getActiveCourses();
+
         $teachers = $this->service->getTeacherList($orgCd, $filters, $page, $pageSize);
         $totalCount = $this->service->getTeacherCount($orgCd, $filters);
         $pageCount = (int)ceil($totalCount / $pageSize);

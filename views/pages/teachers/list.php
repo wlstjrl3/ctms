@@ -81,6 +81,17 @@ $base = \App\Core\App::getInstance()->getBasePath();
             <label>연락처</label>
             <input type="text" name="phone" class="ajax-filter" value="<?= htmlspecialchars($filters['phone'] ?? '') ?>" placeholder="전화번호 검색..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
         </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>수료 교육</label>
+            <select name="course_id" class="ajax-filter" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: var(--text-main);">
+                <option value="">전체 교육</option>
+                <?php if (isset($courses)): foreach ($courses as $course): ?>
+                    <option value="<?= $course['id'] ?>" <?= ($filters['course_id'] ?? '') == $course['id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($course['course_name']) ?>
+                    </option>
+                <?php endforeach; endif; ?>
+            </select>
+        </div>
     </div>
 </div>
 

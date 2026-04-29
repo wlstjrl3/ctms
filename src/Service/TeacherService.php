@@ -44,7 +44,7 @@ class TeacherService
                 $data['email'], $data['postcode'], $data['addr1'], $data['addr2'],
                 $this->mapDepartment($data['academy']),
                 $data['status'] ?? 'active',
-                $data['ac_edsc'] ?? null,
+                $data['current_grade'] ?? null,
                 $data['position'] ?? '',
                 $parishId,
                 $data['photo_path'] ?? $teacher['photo_path'],
@@ -121,7 +121,7 @@ class TeacherService
                 $parishId, $loginId, $data['name'], $data['bname'], $data['jumin_f'], $data['bday'],
                 $data['phone2'], $data['phone1'], $data['email'],
                 $data['postcode'], $data['addr1'], $data['addr2'],
-                $this->mapDepartment($data['academy']), $data['ac_edsc'] ?? null, $data['position'] ?? '',
+                $this->mapDepartment($data['academy']), $data['current_grade'] ?? null, $data['position'] ?? '',
                 $data['photo_path'] ?? null
             ]);
 
@@ -226,6 +226,11 @@ class TeacherService
             $whereSql .= " AND p.parish_name LIKE ?";
             $params[] = "%{$filters['parish_name']}%";
         }
+
+        if (!empty($filters['course_id'])) {
+            $whereSql .= " AND EXISTS (SELECT 1 FROM education_records er WHERE er.teacher_id = t.id AND er.course_id = ?)";
+            $params[] = (int)$filters['course_id'];
+        }
         
         // Age filter (based on birth_date YYYY-MM-DD)
         if (!empty($filters['age_min'])) {
@@ -325,6 +330,11 @@ class TeacherService
             $whereSql .= " AND p.parish_name LIKE ?";
             $params[] = "%{$filters['parish_name']}%";
             $joinParishes = true;
+        }
+
+        if (!empty($filters['course_id'])) {
+            $whereSql .= " AND EXISTS (SELECT 1 FROM education_records er WHERE er.teacher_id = t.id AND er.course_id = ?)";
+            $params[] = (int)$filters['course_id'];
         }
 
         if (!empty($filters['age_min'])) {

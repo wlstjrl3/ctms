@@ -384,13 +384,21 @@ class Migrator {
                 $status = 'retired';
             }
 
+            // Consolidate various legacy 'etc' fields into current_grade (remarks)
+            $remarksParts = [];
+            foreach (['type_etc', 'type_etc7', 'type_etc30', 'type_etc31', 'type_etc40'] as $etcField) {
+                $val = trim((string)($row[$etcField] ?? ''));
+                if ($val !== '') $remarksParts[] = $val;
+            }
+            $finalRemarks = implode(' | ', $remarksParts);
+
             $stmt->execute([
                 $parishId, $row['login_id'], $row['name'], $row['bname'], $birthDate, $feastDay, 
                 $row['phone2'], $row['phone1'], null,
                 $deptMap[$row['academy']] ?? 'elementary',
                 $positions[$row['type_num']] ?? '교사',
                 $status,
-                $row['type_etc']
+                $finalRemarks
             ]);
         }
 
