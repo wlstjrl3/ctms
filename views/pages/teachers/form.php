@@ -14,10 +14,6 @@ function isChecked($val1, $val2) {
 }
 ?>
 
-<div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem;">
-    <button class="btn" onclick="history.back()" style="background: var(--glass-bg); color: var(--text-main);">취소</button>
-    <button class="btn btn-primary" onclick="document.getElementById('teacherForm').submit()">저장하기</button>
-</div>
 
 <div class="toast-container" id="toast-container"></div>
 
@@ -57,7 +53,7 @@ function isChecked($val1, $val2) {
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
                         <span style="color: var(--text-muted);">직책</span> 
                         <span style="color: var(--accent); font-weight: 600;">
-                            <?= htmlspecialchars($teacher['position'] ?: '교사') ?>
+                            <?= htmlspecialchars(($teacher['position'] ?? '') ?: '교사') ?>
                         </span>
                     </div>
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
@@ -73,6 +69,13 @@ function isChecked($val1, $val2) {
                         </span>
                     </div>
                 </div>
+                <?php if ($mode === 'edit'): ?>
+                <div style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <button type="button" class="btn" onclick="deleteTeacherProfile()" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); width: 100%; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.8rem;">
+                        🗑️ 교사 정보 완전 삭제
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
         </aside>
 
@@ -97,7 +100,7 @@ function isChecked($val1, $val2) {
                     </div>
                     <div class="form-group">
                         <label>생년월일 (YYYY-MM-DD)</label>
-                        <input type="date" name="jumin_f" value="<?= htmlspecialchars($teacher['birth_date'] ?? '') ?>">
+                        <input type="text" name="jumin_f" value="<?= htmlspecialchars($teacher['birth_date'] ?? '') ?>" placeholder="YYYY-MM-DD" maxlength="10">
                     </div>
                     <div class="form-group">
                         <label>영명축일 (MM/DD)</label>
@@ -117,10 +120,7 @@ function isChecked($val1, $val2) {
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>주소</label>
-                        <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <input type="text" name="postcode" value="<?= htmlspecialchars($teacher['post_code'] ?? '') ?>" placeholder="우편번호">
-                            <button type="button" class="btn" style="background: var(--bg-dark);">주소 찾기</button>
-                        </div>
+                        <input type="text" name="postcode" value="<?= htmlspecialchars($teacher['post_code'] ?? '') ?>" placeholder="우편번호" style="width: 120px; margin-bottom: 0.5rem; display: block;">
                         <input type="text" name="addr1" value="<?= htmlspecialchars($teacher['address_basic'] ?? '') ?>" placeholder="기본 주소" style="margin-bottom: 0.5rem;">
                         <input type="text" name="addr2" value="<?= htmlspecialchars($teacher['address_detail'] ?? '') ?>" placeholder="상세 주소">
                     </div>
@@ -136,7 +136,7 @@ function isChecked($val1, $val2) {
                             <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">🏢</span> 소속 정보
                         </h4>
                         <div class="glass-card" style="padding: 2rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label>소속 본당</label>
                                 <div style="display: grid; grid-template-columns: 1fr 100px; gap: 0.5rem;">
                                     <?php 
@@ -199,7 +199,7 @@ function isChecked($val1, $val2) {
                         <div class="glass-card" style="padding: 1.5rem; margin-top: 1.5rem;">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label>비고 / 기타사항 (휴직사유 등)</label>
-                                <textarea name="ac_edsc" rows="2" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.875rem;"><?= htmlspecialchars($teacher['current_grade'] ?? '') ?></textarea>
+                                <textarea name="ac_edsc" rows="6" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.875rem; line-height: 1.5;"><?= htmlspecialchars($teacher['current_grade'] ?? '') ?></textarea>
                             </div>
                         </div>
                     </section>
@@ -232,15 +232,15 @@ function isChecked($val1, $val2) {
                                     <div style="display: flex; gap: 1rem; align-items: center;">
                                         <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                                             <span style="font-size: 0.75rem; color: var(--text-muted);">시작</span>
-                                            <input type="date" name="furlough_start[]" value="<?= $f['start_date'] ?? '' ?>">
+                                            <input type="text" name="furlough_start[]" value="<?= $f['start_date'] ?? '' ?>" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
                                         </div>
                                         <span style="color: var(--text-muted);">~</span>
                                         <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                                             <span style="font-size: 0.75rem; color: var(--text-muted);">종료</span>
-                                            <input type="date" name="furlough_end[]" value="<?= $f['end_date'] ?? '' ?>">
+                                            <input type="text" name="furlough_end[]" value="<?= $f['end_date'] ?? '' ?>" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
                                         </div>
                                     </div>
-                                    <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+                                    <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
@@ -279,7 +279,7 @@ function isChecked($val1, $val2) {
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
+                                    <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
@@ -304,7 +304,7 @@ function isChecked($val1, $val2) {
                         $eduDetails = $teacher['edu_details'] ?? [];
                         foreach ($eduDetails as $idx => $edu): 
                     ?>
-                    <div class="edu-item glass-card grid-3-auto" style="padding: 1rem; align-items: center;">
+                    <div class="edu-item glass-card" style="padding: 1rem; align-items: center; display: grid; grid-template-columns: 1fr 180px 40px; gap: 1.5rem;">
                         <div class="form-group" style="margin: 0;">
                             <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.5rem;">
                                 <input type="text" id="edu_name_<?= $idx ?>" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
@@ -313,10 +313,10 @@ function isChecked($val1, $val2) {
                             </div>
                         </div>
                         <div class="form-group" style="margin: 0; position: relative;">
-                            <input type="date" name="edu_date[]" value="<?= htmlspecialchars($edu['edu_dt'] ?? '') ?>" style="text-align: center;">
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted); pointer-events: none;">수료일</span>
+                            <span style="position: absolute; right: 0; top: -18px; font-size: 0.65rem; color: var(--text-muted);">수료일</span>
+                            <input type="text" name="edu_date[]" value="<?= htmlspecialchars($edu['edu_dt'] ?? '') ?>" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
                         </div>
-                        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+                        <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -369,17 +369,19 @@ function isChecked($val1, $val2) {
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 0.75rem; color: var(--text-muted);">시작</span>
-                    <input type="date" name="furlough_start[]">
+                    <input type="text" name="furlough_start[]" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
                 </div>
                 <span style="color: var(--text-muted);">~</span>
                 <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 0.75rem; color: var(--text-muted);">종료</span>
-                    <input type="date" name="furlough_end[]">
+                    <input type="text" name="furlough_end[]" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
                 </div>
             </div>
-            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+            <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
         `;
         container.appendChild(div);
+        initAutoSave();
+        performAjaxSave();
     }
 
     function addAward() {
@@ -402,34 +404,37 @@ function isChecked($val1, $val2) {
             <div style="flex: 1;">
                 <select name="award_name[]">${options}</select>
             </div>
-            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
+            <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 0 0.5rem;">&times;</button>
         `;
         container.appendChild(div);
+        initAutoSave();
+        performAjaxSave();
     }
 
     let eduIdx = <?= count($eduDetails) ?>;
     function addEducation() {
         const container = document.getElementById('education-container');
         const div = document.createElement('div');
-        const currentIdx = eduIdx++;
         div.className = 'edu-item glass-card';
-        div.style.cssText = 'padding: 1rem; display: grid; grid-template-columns: 1fr 200px 40px; gap: 1.5rem; align-items: center;';
+        div.style.cssText = 'padding: 1rem; align-items: center; gap: 1rem; display: grid; grid-template-columns: 1fr 180px 40px; gap: 1.5rem;';
         
         div.innerHTML = `
             <div class="form-group" style="margin: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.5rem;">
-                    <input type="text" id="edu_name_${currentIdx}" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
-                    <input type="hidden" name="edu_course_id[]" id="edu_id_${currentIdx}">
-                    <button type="button" class="btn" onclick="openEducationModal(${currentIdx})" style="background: var(--primary); color: white; padding: 0.5rem;">선택</button>
+                    <input type="text" id="edu_name_${eduIdx}" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
+                    <input type="hidden" name="edu_course_id[]" id="edu_id_${eduIdx}">
+                    <button type="button" class="btn" onclick="openEducationModal(${eduIdx})" style="background: var(--primary); color: white; padding: 0.5rem;">선택</button>
                 </div>
             </div>
             <div class="form-group" style="margin: 0; position: relative;">
-                <input type="date" name="edu_date[]" style="text-align: center;">
-                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted); pointer-events: none;">수료일</span>
+                <span style="position: absolute; right: 0; top: -18px; font-size: 0.65rem; color: var(--text-muted);">수료일</span>
+                <input type="text" name="edu_date[]" placeholder="YYYY-MM-DD" maxlength="10" style="text-align: center;">
             </div>
-            <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
+            <button type="button" onclick="if(confirm('데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')){ this.parentElement.remove(); performAjaxSave(); }" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
         `;
         container.appendChild(div);
+        initAutoSave();
+        performAjaxSave();
     }
 </script>
 
@@ -462,11 +467,240 @@ function previewImage(input) {
             preview.src = e.target.result;
             preview.style.display = 'block';
             if (placeholder) placeholder.style.display = 'none';
-            showToast('사진이 선택되었습니다. 상단의 [저장하기] 버튼을 눌러야 최종 반영됩니다.', 'info');
+            showAutoSaveStatus('저장 중...');
+            performAjaxSave().then(success => {
+                if (success) showAutoSaveStatus('사진 저장됨');
+                else alert('사진 저장 중 오류가 발생했습니다.');
+            });
         }
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+// --- Auto-Save Logic ---
+let isSaving = false;
+
+function initAutoSave() {
+    // Standard inputs
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (!el.name || ['login_id', 'mode', 'photo'].includes(el.name)) return;
+        
+        // Handle dynamic arrays (furlough, awards, edu)
+        if (el.name.includes('[]')) {
+            el.addEventListener('change', () => {
+                showAutoSaveStatus('변경 중...');
+                performAjaxSave().then(success => {
+                    if (success) showAutoSaveStatus('목록 업데이트됨');
+                });
+            });
+            return;
+        }
+
+        el.setAttribute('data-original', el.value);
+
+        // Listen for changes
+        const eventType = el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'blur';
+        el.addEventListener(eventType, handleFieldChange);
+        
+        if (el.tagName === 'INPUT' && el.type === 'text') {
+            el.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    el.blur();
+                }
+            });
+        }
+    });
+}
+
+async function handleFieldChange(e) {
+    const el = e.target;
+    const original = el.getAttribute('data-original');
+    const current = el.value;
+
+    if (original === current || isSaving) return;
+
+    const labelEl = el.closest('.form-group')?.querySelector('label');
+    const label = labelEl ? labelEl.innerText : el.name;
+
+    // Map numeric values to labels for clearer confirmation
+    const academyMap = {
+        '1': '초등부',
+        '2': '중고등부',
+        '5': '대건',
+        '3': '장애아',
+        '4': '초·중고 통합'
+    };
+
+    const statusMap = {
+        'active': '재직',
+        'furlough': '휴직',
+        'retired': '퇴직'
+    };
+
+    let displayOriginal = original;
+    let displayCurrent = current;
+
+    if (el.name === 'academy') {
+        displayOriginal = academyMap[original] || original;
+        displayCurrent = academyMap[current] || current;
+    } else if (el.name === 'status') {
+        displayOriginal = statusMap[original] || original;
+        displayCurrent = statusMap[current] || current;
+    }
+
+    let shouldSave = false;
+    if (!original || original.trim() === '') {
+        // Case 1: Empty to Non-empty -> Save immediately
+        shouldSave = true;
+    } else {
+        // Case 2: Existing value changed -> Confirm with labels
+        shouldSave = confirm(`[${label}] 정보를 수정하시겠습니까?\n\n기존: ${displayOriginal}\n변경: ${displayCurrent}`);
+    }
+
+    if (shouldSave) {
+        const success = await performAjaxSave();
+        if (success) {
+            el.setAttribute('data-original', current);
+            showAutoSaveStatus('저장됨');
+        } else {
+            alert('저장 중 오류가 발생했습니다.');
+            el.value = original;
+        }
+    } else {
+        el.value = original;
+    }
+}
+
+async function performAjaxSave() {
+    isSaving = true;
+    const form = document.getElementById('teacherForm');
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('index.php?action=ajax_save_teacher', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        
+        // If we were in create mode and just created a teacher, update the ID and switch to edit mode
+        if (result.success && result.login_id) {
+            const loginIdInput = document.querySelector('input[name="login_id"]');
+            const modeInput = document.querySelector('input[name="mode"]');
+            if (loginIdInput) loginIdInput.value = result.login_id;
+            if (modeInput) modeInput.value = 'edit';
+        }
+
+        isSaving = false;
+        return result.success;
+    } catch (error) {
+        console.error('Auto-save error:', error);
+        isSaving = false;
+        return false;
+    }
+}
+
+function showAutoSaveStatus(text) {
+    let statusEl = document.getElementById('autosave-status');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'autosave-status';
+        statusEl.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.8rem; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: opacity 0.3s; pointer-events: none;';
+        document.body.appendChild(statusEl);
+    }
+    statusEl.innerText = text;
+    statusEl.style.opacity = '1';
+    setTimeout(() => {
+        statusEl.style.opacity = '0';
+    }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAutoSave();
+    
+    // Feast Day auto-formatter (MM/DD)
+    const bdayInput = document.querySelector('input[name="bday"]');
+    if (bdayInput) {
+        bdayInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if (val.length > 4) val = val.substring(0, 4);
+            if (val.length >= 3) {
+                this.value = val.substring(0, 2) + '/' + val.substring(2);
+            } else {
+                this.value = val;
+            }
+        });
+    }
+
+    // Phone auto-formatter (010-0000-0000)
+    const phoneInput = document.querySelector('input[name="phone2"]');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if (val.length > 11) val = val.substring(0, 11);
+            
+            let formatted = '';
+            if (val.length <= 3) {
+                formatted = val;
+            } else if (val.length <= 7) {
+                formatted = val.substring(0, 3) + '-' + val.substring(3);
+            } else if (val.length <= 10) {
+                formatted = val.substring(0, 3) + '-' + val.substring(3, 6) + '-' + val.substring(6);
+            } else {
+                formatted = val.substring(0, 3) + '-' + val.substring(3, 7) + '-' + val.substring(7);
+            }
+            this.value = formatted;
+        });
+    }
+
+    // Birth Date auto-formatter (YYYY-MM-DD)
+    const birthInput = document.querySelector('input[name="jumin_f"]');
+    if (birthInput) {
+        birthInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if (val.length > 8) val = val.substring(0, 8);
+            
+            let formatted = '';
+            if (val.length <= 4) {
+                formatted = val;
+            } else if (val.length <= 6) {
+                formatted = val.substring(0, 4) + '-' + val.substring(4);
+            } else {
+                formatted = val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6);
+            }
+            this.value = formatted;
+        });
+    }
+
+    // Date auto-formatter (YYYY-MM-DD) for dynamic fields
+    document.addEventListener('input', function(e) {
+        const dateFields = ['furlough_start[]', 'furlough_end[]', 'edu_date[]'];
+        if (dateFields.includes(e.target.name)) {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 8) val = val.substring(0, 8);
+            
+            let formatted = '';
+            if (val.length <= 4) {
+                formatted = val;
+            } else if (val.length <= 6) {
+                formatted = val.substring(0, 4) + '-' + val.substring(4);
+            } else {
+                formatted = val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6);
+            }
+            e.target.value = formatted;
+        }
+    });
+});
+
+function deleteTeacherProfile() {
+    if (confirm('이 교사의 모든 정보(이력, 수상, 교육 등)가 영구적으로 삭제됩니다.\n데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')) {
+        const loginId = document.querySelector('input[name="login_id"]').value;
+        const base = '<?= $base ?>';
+        window.location.href = `${base}index.php?action=teacher_delete&login_id=${loginId}`;
+    }
+}
+// --- End Auto-Save Logic ---
 </script>
 
 <!-- Parish Search Modal -->
@@ -569,6 +803,7 @@ function previewImage(input) {
         document.getElementById('parish_id_input').value = id;
         document.getElementById('parish_name_display').value = `[${diocese}] ${name}`;
         closeParishModal();
+        performAjaxSave(); // Trigger auto-save immediately after binding
     }
 
     // --- Education Course Search ---
@@ -616,6 +851,7 @@ function previewImage(input) {
         if (currentEduTargetIdx !== null) {
             document.getElementById(`edu_id_${currentEduTargetIdx}`).value = id;
             document.getElementById(`edu_name_${currentEduTargetIdx}`).value = name;
+            performAjaxSave();
         }
         closeEducationModal();
     }

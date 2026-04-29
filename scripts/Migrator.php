@@ -339,9 +339,10 @@ class Migrator {
         // PHASE 1: Active Teachers from bd_member_right
         echo "  - Phase 1: Migrating Active Teachers...\n";
         $activeLegacy = $this->db->query("
-            SELECT r.*, m.bitDelete 
+            SELECT r.*, m.bitDelete, a.ac_edsc as academy_remarks, a.ac_ect as academy_ect
             FROM bd_member_right r
             JOIN MPLUS_MEMBER_LIST m ON r.login_id = m.strLoginID
+            LEFT JOIN academy_state a ON r.login_id = a.login_id
         ")->fetchAll(PDO::FETCH_ASSOC);
         $today = date('Y-m-d');
         foreach ($activeLegacy as $row) {
@@ -386,11 +387,21 @@ class Migrator {
 
             // Consolidate various legacy 'etc' fields into current_grade (remarks)
             $remarksParts = [];
+            
+            // 1. Standard etc fields
             foreach (['type_etc', 'type_etc7', 'type_etc30', 'type_etc31', 'type_etc40'] as $etcField) {
                 $val = trim((string)($row[$etcField] ?? ''));
                 if ($val !== '') $remarksParts[] = $val;
             }
-            $finalRemarks = implode(' | ', $remarksParts);
+
+            // 2. Academy specific remarks (contains Furlough/Status history)
+            $acaRem = trim((string)($row['academy_remarks'] ?? ''));
+            if ($acaRem !== '') $remarksParts[] = $acaRem;
+
+            $acaEct = trim((string)($row['academy_ect'] ?? ''));
+            if ($acaEct !== '') $remarksParts[] = $acaEct;
+
+            $finalRemarks = implode("\n", $remarksParts);
 
             $stmt->execute([
                 $parishId, $row['login_id'], $row['name'], $row['bname'], $birthDate, $feastDay, 

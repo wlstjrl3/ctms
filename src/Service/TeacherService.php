@@ -99,7 +99,7 @@ class TeacherService
         return $map[$legacyVal] ?? 'elementary';
     }
 
-    public function createTeacher(array $data): bool
+    public function createTeacher(array $data)
     {
         $pdo = $this->db->getPdo();
         $pdo->beginTransaction();
@@ -147,10 +147,34 @@ class TeacherService
             }
 
             $pdo->commit();
-            return true;
+            return $loginId;
         } catch (\Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Create Teacher V2 Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function deleteTeacher(string $loginId): bool
+    {
+        $pdo = $this->db->getPdo();
+        $pdo->beginTransaction();
+        try {
+            $teacher = $this->db->fetch("SELECT id FROM teachers WHERE login_id = ?", [$loginId]);
+            if (!$teacher) return false;
+            
+            $id = $teacher['id'];
+            $this->db->query("DELETE FROM teacher_tenure WHERE teacher_id = ?", [$id]);
+            $this->db->query("DELETE FROM teacher_furloughs WHERE teacher_id = ?", [$id]);
+            $this->db->query("DELETE FROM teacher_awards WHERE teacher_id = ?", [$id]);
+            $this->db->query("DELETE FROM education_records WHERE teacher_id = ?", [$id]);
+            $this->db->query("DELETE FROM teachers WHERE id = ?", [$id]);
+            
+            $pdo->commit();
+            return true;
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log("Delete Teacher Error: " . $e->getMessage());
             return false;
         }
     }

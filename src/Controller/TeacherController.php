@@ -158,18 +158,57 @@ class TeacherController
         require __DIR__ . '/../../views/layouts/footer.php';
     }
 
-    public function save(): void
+    public function delete(): void
+    {
+        $loginId = $_GET['login_id'] ?? '';
+        if (empty($loginId)) return;
+        
+        if ($this->service->deleteTeacher($loginId)) {
+            $base = \App\Core\App::getInstance()->getBasePath();
+            header("Location: {$base}index.php?page=teacher_list");
+            exit;
+        }
+    }
+
+    public function ajaxSave(): void
     {
         $session = App::getInstance()->session();
+        header('Content-Type: application/json');
+        
         if (!$session->isLoggedIn()) {
-            header('Location: index.php?page=login');
+            echo json_encode(['success' => false, 'message' => '로그인이 필요합니다.']);
             exit;
         }
 
         $loginId = $_POST['login_id'] ?? '';
         $mode = $_POST['mode'] ?? 'edit';
 
-        // Comprehensive data mapping
+        // Extract the same data mapping logic (simplified for AJAX if needed, but keeping consistency)
+        $data = $this->parsePostData($session, $loginId);
+
+        if ($mode === 'edit' && !empty($loginId)) {
+            $success = $this->service->updateTeacher($loginId, $data);
+            $message = '정보가 실시간으로 반영되었습니다.';
+            $newId = $loginId;
+        } else {
+            $data['bcode'] = (string)$session->get('bcode', '');
+            $newId = $this->service->createTeacher($data);
+            $success = ($newId !== false);
+            $message = $success ? '새로운 교사가 등록되었습니다.' : '등록 중 오류가 발생했습니다.';
+        }
+
+        if (ob_get_length()) ob_clean();
+        echo json_encode([
+            'success' => $success, 
+            'message' => $message,
+            'login_id' => $newId,
+            'mode' => 'edit'
+        ]);
+        exit;
+    }
+
+    private function parsePostData($session, $loginId): array
+    {
         $data = [
             'name'      => $_POST['name'] ?? '',
             'parish_id' => $_POST['parish_id'] ?? null,
@@ -190,73 +229,88 @@ class TeacherController
             'current_grade' => $_POST['ac_edsc'] ?? '',
             'cs_year'     => $_POST['cs_year'] ?? '',
             'cs_month'    => $_POST['cs_month'] ?? '',
-            
-            // Furlough (Dynamic)
-            'furloughs' => [],
-            'education' => [],
-            'awards'    => []
+            'furloughs' => [], 'education' => [], 'awards' => []
         ];
 
+        // Parse Furloughs
         if (isset($_POST['furlough_reason']) && is_array($_POST['furlough_reason'])) {
             foreach ($_POST['furlough_reason'] as $i => $reason) {
                 if ($reason !== '0' || !empty($_POST['furlough_start'][$i])) {
                     $data['furloughs'][] = [
-                        'reason'     => $reason,
+                        'reason' => $reason,
                         'start_date' => $_POST['furlough_start'][$i] ?? null,
-                        'end_date'   => $_POST['furlough_end'][$i] ?? null
+                        'end_date' => $_POST['furlough_end'][$i] ?? null
                     ];
                 }
             }
         }
 
-        // Education (Dynamic)
+        // Parse Education
         if (isset($_POST['edu_course_id']) && is_array($_POST['edu_course_id'])) {
             foreach ($_POST['edu_course_id'] as $i => $courseId) {
                 if (!empty($courseId)) {
                     $data['education'][] = [
                         'course_id' => (int)$courseId,
-                        'date'  => $_POST['edu_date'][$i] ?? null
+                        'date' => $_POST['edu_date'][$i] ?? null
                     ];
                 }
             }
         }
 
-        // Parse awards
+        // Parse Awards
         if (isset($_POST['award_year']) && is_array($_POST['award_year'])) {
             foreach ($_POST['award_year'] as $i => $year) {
                 $awardName = $_POST['award_name'][$i] ?? '';
                 if (!empty($year) && !empty($awardName)) {
                     $data['awards'][] = [
                         'tml_year' => $year,
-                        'tml'      => $awardName,
-                        'bcode'    => (string)$session->get('bcode', '')
+                        'tml' => $awardName,
+                        'bcode' => (string)$session->get('bcode', '')
                     ];
                 }
             }
         }
+
         // Handle Photo Upload
-        $photoPath = null;
+        $data['photo_path'] = null;
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
             $allowedTypes = ['image/jpeg', 'image/png'];
             $maxSize = 2 * 1024 * 1024; // 2MB
             
             if (in_array($_FILES['photo']['type'], $allowedTypes) && $_FILES['photo']['size'] <= $maxSize) {
                 $ext = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-                $newFileName = 'teacher_' . ($loginId ?: uniqid()) . '_' . time() . '.' . $ext;
+                $newFileName = 'teacher_' . ($loginId ?: 'new_' . uniqid()) . '_' . time() . '.' . $ext;
                 $uploadDir = __DIR__ . '/../../public/uploads/photos/';
                 
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
                 if (move_uploaded_file($_FILES['photo']['tmp_name'], $uploadDir . $newFileName)) {
-                    $photoPath = 'uploads/photos/' . $newFileName;
+                    $data['photo_path'] = 'uploads/photos/' . $newFileName;
                 }
             }
         }
-        $data['photo_path'] = $photoPath;
+
+        return $data;
+    }
+
+    public function save(): void
+    {
+        $session = App::getInstance()->session();
+        if (!$session->isLoggedIn()) {
+            header('Location: index.php?page=login');
+            exit;
+        }
+
+        $loginId = $_POST['login_id'] ?? '';
+        $mode = $_POST['mode'] ?? 'edit';
+        $data = $this->parsePostData($session, $loginId);
 
         if ($mode === 'edit' && !empty($loginId)) {
             $success = $this->service->updateTeacher($loginId, $data);
             $msg = $success ? '정보가 수정되었습니다.' : '수정 중 오류가 발생했습니다.';
         } else {
-            // Include bcode for creation
             $data['bcode'] = (string)$session->get('bcode', '');
             $success = $this->service->createTeacher($data);
             $msg = $success ? '새로운 교사가 등록되었습니다.' : '등록 중 오류가 발생했습니다.';

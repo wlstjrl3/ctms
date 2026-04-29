@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+ob_start();
 
 // Simple Autoloader
 spl_autoload_register(function ($class) {
@@ -33,6 +34,10 @@ if ($action === 'login') {
     (new LoginController())->logout();
 } elseif ($action === 'save_teacher') {
     (new \App\Controller\TeacherController())->save();
+} elseif ($action === 'ajax_save_teacher') {
+    (new \App\Controller\TeacherController())->ajaxSave();
+} elseif ($action === 'teacher_delete') {
+    (new \App\Controller\TeacherController())->delete();
 } elseif ($action === 'schedule_detail') {
     (new \App\Controller\EduScheduleController())->detail();
 } elseif ($action === 'export_teachers') {
