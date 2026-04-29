@@ -127,24 +127,30 @@ $userRole = $session->getRole();
             const response = await fetch(`index.php?action=schedule_detail&idx=${idx}`);
             const data = await response.json();
 
-            const courseName = data.standardized_name || data.edu_subject;
+            if (!data || data.error) {
+                body.innerHTML = `<p style="text-align:center; padding: 2rem;">데이터를 찾을 수 없습니다.</p>`;
+                return;
+            }
+
+            const courseName = data.standardized_name || data.edu_subject || '알 수 없는 교육';
+            const eduDate = data.edu_date ? data.edu_date.substring(0, 16) : '미정';
 
             body.innerHTML = `
                 <div style="margin-bottom: 2rem;">
                     <span class="badge badge-active" style="margin-bottom: 1rem; display: inline-block;">상세 정보</span>
                     <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">${courseName}</h2>
                     ${data.standardized_name ? `<p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">[공식 명칭] ${data.edu_subject}</p>` : ''}
-                    <p style="color: var(--text-muted); font-size: 0.85rem;">${data.edu_year}년 교육 과정</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">${data.edu_year || ''}년 교육 과정</p>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
                     <div class="info-group">
                         <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">장소</label>
-                        <div style="font-weight: 600;">📍 ${data.edu_place}</div>
+                        <div style="font-weight: 600;">📍 ${data.edu_place || '미정'}</div>
                     </div>
                     <div class="info-group">
                         <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">일시</label>
-                        <div style="font-weight: 600;">⏰ ${data.edu_date.substring(0, 16)}</div>
+                        <div style="font-weight: 600;">⏰ ${eduDate}</div>
                     </div>
                     <div class="info-group">
                         <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">참가비</label>
@@ -168,7 +174,8 @@ $userRole = $session->getRole();
                 </div>
             `;
         } catch (err) {
-            body.innerHTML = `<p style="color:var(--danger);">데이터를 불러오는 중 오류가 발생했습니다.</p>`;
+            console.error(err);
+            body.innerHTML = `<p style="color:var(--danger); text-align:center; padding: 2rem;">데이터를 불러오는 중 오류가 발생했습니다.</p>`;
         }
     }
 

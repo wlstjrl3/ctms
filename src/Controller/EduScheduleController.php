@@ -88,8 +88,11 @@ class EduScheduleController
 
     public function detail(): void
     {
+        ob_start(); // Start buffering to catch any potential notices
+        
         $session = App::getInstance()->session();
         if (!$session->isLoggedIn()) {
+            ob_clean();
             echo json_encode(['error' => 'Unauthorized']);
             return;
         }
@@ -97,6 +100,7 @@ class EduScheduleController
         $idx = (int)($_GET['idx'] ?? 0);
         $schedule = $this->service->getSchedule($idx);
 
+        ob_clean(); // Clean any notices/warnings before outputting JSON
         header('Content-Type: application/json');
         echo json_encode($schedule);
         exit;
