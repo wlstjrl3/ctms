@@ -80,9 +80,9 @@ $isAdmin = \App\Core\App::getInstance()->session()->getRole() !== 'bondang';
 
 <!-- Schedule Form Modal -->
 <div id="scheduleModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(5px); align-items: center; justify-content: center;">
-    <div class="glass-card modal-content" style="width: 600px; max-width: 95%; padding: 2.5rem; position: relative; max-height: 90vh; overflow-y: auto;">
-        <button onclick="closeScheduleModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
-        <h3 id="modalTitle" style="margin-bottom: 2rem; color: var(--primary);">교육 일정 등록</h3>
+    <div class="glass-card modal-content" style="width: 850px; max-width: 95%; padding: 3rem; position: relative; max-height: 90vh; overflow-y: auto;">
+        <button onclick="closeScheduleModal()" style="position: absolute; right: 2rem; top: 2rem; background: none; border: none; color: var(--text-muted); font-size: 2rem; cursor: pointer; transition: var(--transition);" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+        <h3 id="modalTitle" style="margin-bottom: 2.5rem; color: var(--primary); font-size: 1.5rem;">교육 일정 등록</h3>
         
         <form action="<?= $base ?>index.php?action=save_schedule" method="POST" id="scheduleForm">
             <input type="hidden" name="idx_num" id="form_idx_num">
