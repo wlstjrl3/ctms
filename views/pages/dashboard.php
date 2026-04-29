@@ -120,13 +120,12 @@ $base = $app->getBasePath();
 
 <script>
     function showDetail(data) {
-        console.log('Detail Data:', data);
         const modal = document.getElementById('detailModal');
         const body = document.getElementById('modalBody');
         modal.style.display = 'flex';
 
         if (!data) {
-            body.innerHTML = `<p style="text-align:center; padding: 2rem;">데이터를 찾지 못했습니다. (객체 전달 방식)</p>`;
+            body.innerHTML = `<p style="text-align:center; padding: 2rem;">데이터를 불러오는 중 오류가 발생했습니다.</p>`;
             return;
         }
 
