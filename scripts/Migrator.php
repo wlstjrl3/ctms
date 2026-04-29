@@ -49,6 +49,7 @@ class Migrator {
         $this->migrateTeachers();
         $this->migrateFurloughs();
         $this->migrateAwards();
+        $this->consolidateCourses();
         
         echo "Migration Finished Successfully.\n";
     }
@@ -100,6 +101,44 @@ class Migrator {
 
         // Update teachers status enum to match our code ('furlough' instead of 'on_leave')
         $this->db->query("ALTER TABLE teachers MODIFY COLUMN status ENUM('active', 'furlough', 'retired') DEFAULT 'active'");
+
+        // --- Education System Updates ---
+        
+        // 1. education_courses schema
+        $cols = $this->db->query("SHOW COLUMNS FROM education_courses")->fetchAll(PDO::FETCH_ASSOC);
+        $hasActive = false;
+        $hasCategory = false;
+        foreach ($cols as $c) {
+            if ($c['Field'] === 'is_active') $hasActive = true;
+            if ($c['Field'] === 'category') $hasCategory = true;
+        }
+        if (!$hasActive) $this->db->query("ALTER TABLE education_courses ADD COLUMN is_active TINYINT DEFAULT 1");
+        if (!$hasCategory) $this->db->query("ALTER TABLE education_courses ADD COLUMN category VARCHAR(50) DEFAULT '[미분류]'");
+
+        // 2. edu_schedule_new schema synchronization
+        $sCols = $this->db->query("SHOW COLUMNS FROM edu_schedule_new")->fetchAll(PDO::FETCH_ASSOC);
+        $hasCourseId = false;
+        $hasEduPlace = false;
+        $hasEduWhere = false;
+        $hasEduState = false;
+        foreach ($sCols as $c) {
+            if ($c['Field'] === 'course_id') $hasCourseId = true;
+            if ($c['Field'] === 'edu_place') $hasEduPlace = true;
+            if ($c['Field'] === 'edu_where') $hasEduWhere = true;
+            if ($c['Field'] === 'edu_state') $hasEduState = true;
+        }
+
+        if (!$hasCourseId) $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN course_id INT AFTER idx_num");
+        if (!$hasEduState) $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_state VARCHAR(10) DEFAULT '0' AFTER edu_level");
+        
+        if (!$hasEduPlace && $hasEduWhere) {
+            $this->db->query("ALTER TABLE edu_schedule_new CHANGE edu_where edu_place VARCHAR(100)");
+        } elseif (!$hasEduPlace) {
+            $this->db->query("ALTER TABLE edu_schedule_new ADD COLUMN edu_place VARCHAR(100) AFTER edu_subject");
+        }
+
+        $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_date DATETIME");
+        $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_subject VARCHAR(255)");
     }
 
     private function clearTables() {
@@ -384,8 +423,15 @@ class Migrator {
         $stmt = $this->db->query("SELECT * FROM bd_member_education");
         $eduData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $insertCourse = $this->db->prepare("INSERT IGNORE INTO education_courses (course_name, category) VALUES (?, 'General')");
+        $insertCourse = $this->db->prepare("INSERT IGNORE INTO education_courses (course_name, category) VALUES (?, ?)");
         
+        $categories = [
+            '영성' => '영성 교육', '교리' => '교리/신학', '신학' => '교리/신학',
+            '교수' => '교수법/심리', '심리' => '교수법/심리', '레크' => '기능/기술',
+            '기능' => '기능/기술', '줌' => '기능/기술', '구글' => '기능/기술',
+            '대화' => '리더십/소통', '소통' => '리더십/소통', '리더' => '리더십/소통'
+        ];
+
         // Use a more robust join-based insert with DISTINCT or specific mapping
         $insertRecord = $this->db->prepare("
             INSERT IGNORE INTO education_records (teacher_id, course_id, completion_date, status)
@@ -400,8 +446,16 @@ class Migrator {
             $courseName = trim($row['edu_title']);
             if (empty($courseName)) continue;
 
-            // 1. Ensure course exists (UNIQUE constraint will prevent duplicates now)
-            $insertCourse->execute([$courseName]);
+            $cat = '[미분류]';
+            foreach ($categories as $key => $val) {
+                if (mb_strpos($courseName, $key) !== false) {
+                    $cat = $val;
+                    break;
+                }
+            }
+            
+            // 1. Ensure course exists
+            $insertCourse->execute([$courseName, $cat]);
             
             // 2. Insert record
             $insertRecord->execute([
@@ -482,6 +536,101 @@ class Migrator {
                 $row['login_id']
             ]);
         }
+    }
+
+    /**
+     * Consolidate duplicate education courses based on normalized names and manual mappings.
+     */
+    private function consolidateCourses() {
+        echo "- Consolidating Education Courses...\n";
+        
+        // 1. Initial Rename/Merge based on specific rules
+        $stmt = $this->db->query("SELECT * FROM education_courses");
+        $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($courses as $course) {
+            $cleanName = $this->getCleanCourseName($course['course_name']);
+            if ($cleanName !== $course['course_name']) {
+                $check = $this->db->prepare("SELECT id FROM education_courses WHERE course_name = ? AND id != ?");
+                $check->execute([$cleanName, $course['id']]);
+                $existing = $check->fetch(PDO::FETCH_ASSOC);
+
+                if ($existing) {
+                    $this->db->prepare("UPDATE education_records SET course_id = ? WHERE course_id = ?")
+                             ->execute([$existing['id'], $course['id']]);
+                    $this->db->prepare("DELETE FROM education_courses WHERE id = ?")
+                             ->execute([$course['id']]);
+                } else {
+                    $this->db->prepare("UPDATE education_courses SET course_name = ? WHERE id = ?")
+                             ->execute([$cleanName, $course['id']]);
+                }
+            }
+        }
+
+        // 2. Secondary Merge based on normalization (spaces, dots, etc.)
+        $stmt = $this->db->query("SELECT * FROM education_courses");
+        $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $groups = [];
+        foreach ($courses as $c) {
+            $norm = $this->normalizeCourseName($c['course_name']);
+            $groups[$norm][] = $c;
+        }
+
+        foreach ($groups as $norm => $members) {
+            if (count($members) > 1) {
+                usort($members, function($a, $b) { return mb_strlen($a['course_name']) - mb_strlen($b['course_name']); });
+                $rep = $members[0];
+                for ($i = 1; $i < count($members); $i++) {
+                    $other = $members[$i];
+                    $this->db->prepare("UPDATE education_records SET course_id = ? WHERE course_id = ?")
+                             ->execute([$rep['id'], $other['id']]);
+                    $this->db->prepare("DELETE FROM education_courses WHERE id = ?")
+                             ->execute([$other['id']]);
+                }
+            }
+        }
+    }
+
+    private function getCleanCourseName($name) {
+        // Remove date-like prefixes (e.g., 22-4, 22-10)
+        $name = preg_replace('/^\d{2}-\d+-?/', '', $name);
+
+        $lower = mb_strtolower($name, 'UTF-8');
+        $noSpace = str_replace([' ', '.', '(', ')', '[', ']', '{', '}', ',', '론'], '', $lower);
+        
+        // Adolescent Dialogue
+        if (in_array($noSpace, ['청소년대화법초등', '청소년대화법초등부'])) return '청소년대화법(초등부)';
+        if (in_array($noSpace, ['청소년대화법중고등', '청소년대화법중고등부', '청소년대화법쭝고등'])) return '청소년대화법(중고등부)';
+        
+        // Spirituality
+        if (in_array($noSpace, ['교리교사영성', '교리교사의영성', '교사영성'])) return '교리교사 영성';
+        
+        // Google Platforms
+        if (in_array($noSpace, ['구글플랫폼', '구글플렛폼'])) return '구글 플랫폼';
+        
+        // Bible and Monthly Devotion
+        if (in_array($noSpace, ['성경', '성경입문'])) return '성경입문';
+        if (in_array($noSpace, ['성월', '성월교육'])) return '성월교육';
+        
+        // Zoom & Recreation
+        if (in_array($noSpace, ['줌줌클래스', '줌활용법'])) return '줌 활용법';
+        if (in_array($noSpace, ['레크', '레크레이션', '레크리에이션'])) return '레크레이션';
+
+        // POP Hand-lettering
+        if (strpos($noSpace, 'pop손글씨초급') !== false) return 'POP초급';
+        if (strpos($noSpace, 'pop손글씨중급') !== false) return 'POP중급';
+        if (strpos($noSpace, 'pop손글씨') !== false) return 'POP';
+        
+        // COVID-19
+        if (in_array($noSpace, ['코로나아이이해', '코로나시대아이이해'])) return '코로나시대 아이 이해';
+        if (in_array($noSpace, ['코로나시기지도방법', '코로나시대지도방법'])) return '코로나시대지도방법';
+
+        return $name;
+    }
+
+    private function normalizeCourseName($name) {
+        $name = preg_replace('/^\d{2}-\d+-?/', '', $name);
+        return mb_strtolower(str_replace([' ', '.', '(', ')', '[', ']', '{', '}', ',', '론'], '', $name), 'UTF-8');
     }
 }
 

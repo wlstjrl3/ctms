@@ -16,6 +16,7 @@ erDiagram
     teachers ||--o{ education_records : "completions"
     
     education_courses ||--o{ education_records : "course_info"
+    education_courses ||--o{ edu_schedule_new : "schedules"
 ```
 
 ## 2. 주요 테이블 상세 설계
@@ -81,16 +82,34 @@ erDiagram
 
 ### [C] 교육 기록 (Education Records)
 
-#### 6. `education_courses` (교육 과정)
+#### 6. `education_courses` (표준 교육 과정)
 - `id`: INT PK AI
-- `course_name`: VARCHAR UNIQUE
-- `category`: VARCHAR
+- `course_name`: VARCHAR UNIQUE (정규화된 과목명)
+- `category`: VARCHAR (카테고리: 영성, 교리, 기능 등)
+- `is_active`: TINYINT (활성/비활성)
 
 #### 7. `education_records` (수료 기록)
 - `id`: INT PK AI
 - `teacher_id`: INT FK (teachers.id)
 - `course_id`: INT FK (education_courses.id)
 - `completion_year`: INT
+
+---
+
+### [D] 교육 일정 (Schedules)
+
+#### 8. `edu_schedule_new` (교육 일정 관리)
+- `idx_num`: INT PK AI
+- `course_id`: INT FK (education_courses.id)
+- `edu_subject`: VARCHAR (구체적인 일정 명칭)
+- `edu_year`: VARCHAR (연도)
+- `edu_date`: DATETIME (일시)
+- `edu_place`: VARCHAR (장소)
+- `edu_level`: VARCHAR (대상: 0:통합, 1:초등, 2:중고등)
+- `edu_state`: VARCHAR (상태: 0:예정, 1:접수, 2:교육중, 3:종료)
+- `edu_money`: VARCHAR (참가비)
+- `edu_maxp`: INT (정원)
+- `edu_content`: TEXT (상세 내용)
 
 ---
 

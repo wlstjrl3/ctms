@@ -186,6 +186,7 @@ $currentPage = $_GET['page'] ?? 'dashboard';
                         <li><a href="<?= $base ?>index.php?page=teacher_list" class="nav-item <?= $currentPage === 'teacher_list' ? 'active' : '' ?>">🏢 본당교리교사 관리</a></li>
                         <li><a href="<?= $base ?>index.php?page=user_list" class="nav-item <?= $currentPage === 'user_list' ? 'active' : '' ?>">🔑 본당 계정 관리</a></li>
                         <li><a href="<?= $base ?>index.php?page=parish_list" class="nav-item <?= strpos($currentPage, 'parish') === 0 ? 'active' : '' ?>">⛪ 본당 코드 관리</a></li>
+                        <li><a href="<?= $base ?>index.php?page=education_list" class="nav-item <?= $currentPage === 'education_list' ? 'active' : '' ?>">📚 교육 과정 관리</a></li>
                         <li><a href="<?= $base ?>index.php?page=statistics" class="nav-item <?= $currentPage === 'statistics' ? 'active' : '' ?>">📊 각종 통계</a></li>
                     <?php endif; ?>
                     <li><a href="<?= $base ?>index.php?page=edu_schedule" class="nav-item <?= $currentPage === 'edu_schedule' ? 'active' : '' ?>">📅 교육 일정</a></li>
@@ -210,7 +211,8 @@ $currentPage = $_GET['page'] ?? 'dashboard';
                             'edu_schedule' => '교육 일정',
                             'user_list' => '본당 계정 관리',
                             'user_create' => '본당 계정 등록',
-                            'user_edit' => '본당 계정 수정'
+                            'user_edit' => '본당 계정 수정',
+                            'education_list' => '교육 과정 관리'
                         ];
                         echo $titles[$currentPage] ?? 'CTMS';
                     ?>

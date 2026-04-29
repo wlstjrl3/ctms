@@ -77,17 +77,9 @@ class TeacherService
             $this->db->query("DELETE FROM education_records WHERE teacher_id = ?", [$teacherId]);
             if (isset($data['education']) && is_array($data['education'])) {
                 foreach ($data['education'] as $edu) {
-                    if (!empty($edu['title'])) {
-                        $courseName = $edu['title'];
-                        $course = $this->db->fetch("SELECT id FROM education_courses WHERE course_name = ?", [$courseName]);
-                        if (!$course) {
-                            $this->db->query("INSERT INTO education_courses (course_name, category) VALUES (?, 'General')", [$courseName]);
-                            $courseId = $pdo->lastInsertId();
-                        } else {
-                            $courseId = $course['id'];
-                        }
+                    if (!empty($edu['course_id'])) {
                         $this->db->query("INSERT INTO education_records (teacher_id, course_id, completion_date, status) VALUES (?, ?, ?, 'Completed')", 
-                            [$teacherId, $courseId, $edu['date']]);
+                            [$teacherId, $edu['course_id'], $edu['date']]);
                     }
                 }
             }
@@ -390,7 +382,7 @@ class TeacherService
 
     public function getEducationDetails(string $loginId): array
     {
-        $sql = "SELECT ec.course_name as edu_title, er.completion_date as edu_dt
+        $sql = "SELECT ec.course_name as edu_title, er.completion_date as edu_dt, ec.id as course_id
                 FROM education_records er
                 JOIN teachers t ON er.teacher_id = t.id
                 JOIN education_courses ec ON er.course_id = ec.id

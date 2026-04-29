@@ -29,6 +29,11 @@
 *   **사진 업로드 시스템**: JPG/PNG 프리뷰 및 업로드 로직.
 *   **데이터 품질 보정**: 110세 이상 고령자 Y2K 버그 보정, 영명축일 형식(MM/DD) 강제 변환 등 마이그레이터에 반영.
 
+### [Education & Schedule Management]
+*   **표준 교육 과정 통합**: 파편화된 교육 데이터를 `education_courses` 테이블로 정규화하고, `course_id` 기반의 관계형 구조로 전환했습니다.
+*   **교육 일정 관리**: 단순 조회만 가능했던 일정을 추가/수정/삭제할 수 있는 관리 기능을 구현했습니다. (`edu_schedule_new` 테이블 스키마 현대화 완료)
+*   **검색 모달 UX**: 교사 정보 수정 및 일정 등록 시, 카테고리별 필터링이 가능한 통합 교육 검색 모달을 도입하여 데이터 입력의 정확성을 높였습니다.
+
 ---
 
 ## 2. 레거시(ctmsOLD) 대비 마이그레이션 현황
@@ -39,6 +44,7 @@
 | **실시간 교사 검색** | ✅ 완료 | `TeacherController::ajaxList` | 다중 필터(연령대, 근속 등) 지원, `org_cd` 기반 조회 |
 | **사진 관리** | ✅ 완료 | `TeacherService::updatePhoto` | 실시간 프리뷰 및 서버 저장 |
 | **본당 계정 관리** | ✅ 완료 | `UserService` | `org_cd` 매핑 및 `bondang` 권한 필터링 |
+| **교육 과정/일정 관리** | ✅ 완료 | `EducationService`, `EduScheduleService` | 표준 과정 기반 일정 연동 및 검색 모달 도입 |
 | **미사 시간 설정** | ⏳ 대기 | `bondang/css_mng_time.asp` | `css_mng_info` 테이블 연동 필요 |
 | **학생/교동 관리** | ⏳ 대기 | `bondang/css_att_write_*.asp` | Phase 2 핵심 과제 |
 

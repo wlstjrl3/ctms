@@ -61,6 +61,16 @@ if ($action === 'login') {
     (new \App\Controller\ParishController())->ajaxList();
 } elseif ($action === 'parish_search') {
     (new \App\Controller\ParishController())->ajaxSearch();
+} elseif ($action === 'ajax_course_search') {
+    (new \App\Controller\EducationController())->ajaxSearch();
+} elseif ($action === 'save_course') {
+    (new \App\Controller\EducationController())->save();
+} elseif ($action === 'toggle_course_status') {
+    (new \App\Controller\EducationController())->toggleActive();
+} elseif ($action === 'save_schedule') {
+    (new \App\Controller\EduScheduleController())->save();
+} elseif ($action === 'delete_schedule') {
+    (new \App\Controller\EduScheduleController())->delete();
 } else {
     switch ($page) {
         case 'login':
@@ -109,6 +119,9 @@ if ($action === 'login') {
             break;
         case 'manual':
             (new \App\Controller\ManualController())->index();
+            break;
+        case 'education_list':
+            (new \App\Controller\EducationController())->index();
             break;
         default:
             (new LoginController())->show();

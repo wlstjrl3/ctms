@@ -207,11 +207,11 @@ class TeacherController
         }
 
         // Education (Dynamic)
-        if (isset($_POST['edu_title']) && is_array($_POST['edu_title'])) {
-            foreach ($_POST['edu_title'] as $i => $title) {
-                if (!empty($title)) {
+        if (isset($_POST['edu_course_id']) && is_array($_POST['edu_course_id'])) {
+            foreach ($_POST['edu_course_id'] as $i => $courseId) {
+                if (!empty($courseId)) {
                     $data['education'][] = [
-                        'title' => $title,
+                        'course_id' => (int)$courseId,
                         'date'  => $_POST['edu_date'][$i] ?? null
                     ];
                 }

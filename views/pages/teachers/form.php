@@ -291,15 +291,19 @@ function isChecked($val1, $val2) {
                 <div id="education-container" style="display: flex; flex-direction: column; gap: 1rem;">
                     <?php 
                         $eduDetails = $teacher['edu_details'] ?? [];
-                        foreach ($eduDetails as $edu): 
+                        foreach ($eduDetails as $idx => $edu): 
                     ?>
                     <div class="edu-item glass-card grid-3-auto" style="padding: 1rem; align-items: center;">
                         <div class="form-group" style="margin: 0;">
-                            <input type="text" name="edu_title[]" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" placeholder="교육 과목명">
+                            <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.5rem;">
+                                <input type="text" id="edu_name_<?= $idx ?>" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
+                                <input type="hidden" name="edu_course_id[]" id="edu_id_<?= $idx ?>" value="<?= $edu['course_id'] ?? '' ?>">
+                                <button type="button" class="btn" onclick="openEducationModal(<?= $idx ?>)" style="background: var(--primary); color: white; padding: 0.5rem;">선택</button>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0; position: relative;">
-                            <input type="text" name="edu_date[]" value="<?= htmlspecialchars($edu['edu_dt'] ?? '') ?>" placeholder="YYYY-MM-DD" style="text-align: center;">
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">수료일</span>
+                            <input type="date" name="edu_date[]" value="<?= htmlspecialchars($edu['edu_dt'] ?? '') ?>" style="text-align: center;">
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted); pointer-events: none;">수료일</span>
                         </div>
                         <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
                     </div>
@@ -392,19 +396,25 @@ function isChecked($val1, $val2) {
         container.appendChild(div);
     }
 
+    let eduIdx = <?= count($eduDetails) ?>;
     function addEducation() {
         const container = document.getElementById('education-container');
         const div = document.createElement('div');
+        const currentIdx = eduIdx++;
         div.className = 'edu-item glass-card';
         div.style.cssText = 'padding: 1rem; display: grid; grid-template-columns: 1fr 200px 40px; gap: 1.5rem; align-items: center;';
         
         div.innerHTML = `
             <div class="form-group" style="margin: 0;">
-                <input type="text" name="edu_title[]" placeholder="교육 과목명">
+                <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.5rem;">
+                    <input type="text" id="edu_name_${currentIdx}" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
+                    <input type="hidden" name="edu_course_id[]" id="edu_id_${currentIdx}">
+                    <button type="button" class="btn" onclick="openEducationModal(${currentIdx})" style="background: var(--primary); color: white; padding: 0.5rem;">선택</button>
+                </div>
             </div>
             <div class="form-group" style="margin: 0; position: relative;">
-                <input type="text" name="edu_date[]" placeholder="YYYY-MM-DD" style="text-align: center;">
-                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted);">수료일</span>
+                <input type="date" name="edu_date[]" style="text-align: center;">
+                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--text-muted); pointer-events: none;">수료일</span>
             </div>
             <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.5rem;">&times;</button>
         `;
@@ -550,6 +560,55 @@ function previewImage(input) {
         closeParishModal();
     }
 
+    // --- Education Course Search ---
+    let currentEduTargetIdx = null;
+    let eduSearchTimeout = null;
+
+    function openEducationModal(idx) {
+        currentEduTargetIdx = idx;
+        const modal = document.getElementById('educationModal');
+        modal.style.display = 'flex';
+        document.getElementById('edu_search_keyword').value = '';
+        document.getElementById('edu_search_results').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하세요</p>';
+        document.getElementById('edu_search_keyword').focus();
+    }
+
+    function closeEducationModal() {
+        document.getElementById('educationModal').style.display = 'none';
+    }
+
+    function searchEducation() {
+        const keyword = document.getElementById('edu_search_keyword').value;
+        const category = document.getElementById('edu_search_category').value;
+        clearTimeout(eduSearchTimeout);
+        eduSearchTimeout = setTimeout(() => {
+            fetch(`index.php?action=ajax_course_search&keyword=${encodeURIComponent(keyword)}&category=${encodeURIComponent(category)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('edu_search_results');
+                    if (data.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색 결과가 없습니다</p>';
+                        return;
+                    }
+
+                    container.innerHTML = data.map(c => `
+                        <div class="search-result-item" onclick="selectEducation(${c.id}, '${c.course_name.replace("'", "\\'")}')" style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent;">
+                            <div style="font-weight: 600; color: var(--primary);">${c.course_name}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">${c.category}</div>
+                        </div>
+                    `).join('');
+                });
+        }, 300);
+    }
+
+    function selectEducation(id, name) {
+        if (currentEduTargetIdx !== null) {
+            document.getElementById(`edu_id_${currentEduTargetIdx}`).value = id;
+            document.getElementById(`edu_name_${currentEduTargetIdx}`).value = name;
+        }
+        closeEducationModal();
+    }
+
     // Add CSS for hover
     const style = document.createElement('style');
     style.textContent = `
@@ -560,3 +619,37 @@ function previewImage(input) {
     `;
     document.head.appendChild(style);
 </script>
+
+<!-- Education Search Modal -->
+<div id="educationModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(5px); align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 500px; max-width: 90%; padding: 2rem; position: relative;">
+        <button type="button" onclick="closeEducationModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h2 style="margin-bottom: 1.5rem;">교육 과정 검색</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 120px; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin: 0;">
+                <input type="text" id="edu_search_keyword" placeholder="교육 명칭 검색..." onkeyup="searchEducation()" style="width: 100%; padding: 0.75rem; background-color: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-main);">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <select id="edu_search_category" onchange="searchEducation()" style="width: 100%; padding: 0.75rem; background-color: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-main);">
+                    <option value="all">전체</option>
+                    <option value="[미분류]">[미분류]</option>
+                    <option value="영성 교육">영성 교육</option>
+                    <option value="교리/신학">교리/신학</option>
+                    <option value="교수법/심리">교수법/심리</option>
+                    <option value="기능/기술">기능/기술</option>
+                    <option value="리더십/소통">리더십/소통</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="edu_search_results" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색어를 입력하거나 카테고리를 선택하세요</p>
+        </div>
+        
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <p style="font-size: 0.8rem; color: var(--text-muted);">원하는 교육이 없나요? <a href="<?= $base ?>index.php?page=education_list" style="color: var(--primary); text-decoration: underline;">교육 과정 관리</a>에서 추가하세요.</p>
+        </div>
+    </div>
+</div>
