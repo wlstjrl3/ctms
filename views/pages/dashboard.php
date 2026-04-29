@@ -1,7 +1,9 @@
 <?php
 /** @var array $data */
-$session = \App\Core\App::getInstance()->session();
+$app = \App\Core\App::getInstance();
+$session = $app->session();
 $userRole = $session->getRole();
+$base = $app->getBasePath();
 ?>
 
 <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem;">
@@ -124,7 +126,7 @@ $userRole = $session->getRole();
         body.innerHTML = '<p style="text-align:center; padding: 2rem;">로딩 중...</p>';
 
         try {
-            const response = await fetch(`index.php?action=schedule_detail&idx=${idx}`);
+            const response = await fetch(`<?= $base ?>index.php?action=schedule_detail&idx=${idx}`);
             const data = await response.json();
 
             if (!data || data.error) {
