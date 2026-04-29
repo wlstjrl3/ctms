@@ -101,6 +101,7 @@ class Migrator {
 
         // Update teachers status enum to match our code ('furlough' instead of 'on_leave')
         $this->db->query("ALTER TABLE teachers MODIFY COLUMN status ENUM('active', 'furlough', 'retired') DEFAULT 'active'");
+        $this->db->query("ALTER TABLE teachers MODIFY COLUMN current_grade TEXT");
 
         // --- Education System Updates ---
         
