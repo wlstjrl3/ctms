@@ -14,16 +14,12 @@ class TeacherService
         $this->db = App::getInstance()->db();
     }
 
-    public function updateTeacher(string $loginId, array $data): bool
+    public function updateTeacher(int $teacherId, array $data): bool
     {
         $pdo = $this->db->getPdo();
         $pdo->beginTransaction();
 
         try {
-            // 0. Get existing teacher
-            $teacher = $this->db->fetch("SELECT * FROM teachers WHERE login_id = ?", [$loginId]);
-            if (!$teacher) throw new \Exception("Teacher not found");
-
             // 1. Get parish_id by parish_id or org_cd
             $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
             if (!$parishId && !empty($data['org_cd'])) {
@@ -32,27 +28,20 @@ class TeacherService
             }
 
             // 2. Update teachers (Main Profile)
-            $sqlTeacher = "UPDATE teachers 
-                           SET name = ?, baptismal_name = ?, birth_date = ?, feast_day = ?, mobile_phone = ?, home_phone = ?, 
-                               email = ?, post_code = ?, address_basic = ?, address_detail = ?,
-                               department = ?, status = ?, current_grade = ?, position = ?, parish_id = ?, photo_path = ?
-                           WHERE login_id = ?";
+            $sql = "UPDATE teachers SET 
+                    name = ?, baptismal_name = ?, birth_date = ?, feast_day = ?, 
+                    mobile_phone = ?, email = ?, department = ?, status = ?, 
+                    current_grade = ?, position = ?, parish_id = ?, 
+                    photo_path = COALESCE(?, photo_path)
+                    WHERE id = ?";
             
-            $this->db->query($sqlTeacher, [
-                $data['name'], $data['bname'], $data['jumin_f'], $data['bday'],
-                $data['phone2'], $data['phone1'],
-                $data['email'], $data['postcode'], $data['addr1'], $data['addr2'],
-                $this->mapDepartment($data['academy']),
-                $data['status'] ?? 'active',
-                $data['current_grade'] ?? null,
-                $data['position'] ?? '',
-                $parishId,
-                $data['photo_path'] ?? $teacher['photo_path'],
-                $loginId
+            $this->db->query($sql, [
+                $data['name'], $data['bname'], $data['birth_date'] ?? null, $data['bday'],
+                $data['phone1'], $data['email'], $this->mapDepartment($data['academy']), 
+                $data['status'] ?? 'active', $data['current_grade'] ?? null, 
+                $data['position'] ?? '', $parishId, $data['photo_path'],
+                $teacherId
             ]);
-
-            $teacher = $this->db->fetch("SELECT id FROM teachers WHERE login_id = ?", [$loginId]);
-            $teacherId = $teacher['id'];
 
             // 3. Update teacher_tenure
             $this->db->query("REPLACE INTO teacher_tenure (teacher_id, start_year, start_month) VALUES (?, ?, ?)", 
@@ -84,6 +73,28 @@ class TeacherService
                 }
             }
 
+            // 7. Update Core Education (3 Stages)
+            if (isset($data['core_edu']) && is_array($data['core_edu'])) {
+                foreach ($data['core_edu'] as $courseName => $edu) {
+                    // Find course_id for the core course
+                    $course = $this->db->fetch("SELECT id FROM education_courses WHERE course_name = ?", [$courseName]);
+                    if ($course) {
+                        // Avoid deleting core records if they are already there? 
+                        // No, we should update them based on the specific core_edu input.
+                        // However, $this->db->query("DELETE FROM education_records WHERE teacher_id = ?", [$teacherId]); 
+                        // already deleted ALL education_records above in step 6.
+                        // So we just need to re-insert if completed.
+                        
+                        if (!empty($edu['is_completed'])) {
+                            $month = !empty($edu['month']) ? str_pad((string)$edu['month'], 2, '0', STR_PAD_LEFT) : '01';
+                            $date = "{$edu['year']}-{$month}-01";
+                            $this->db->query("INSERT INTO education_records (teacher_id, course_id, completion_date, status) VALUES (?, ?, ?, 'Completed')", 
+                                [$teacherId, $course['id'], $date]);
+                        }
+                    }
+                }
+            }
+
             $pdo->commit();
             return true;
         } catch (\Exception $e) {
@@ -105,7 +116,6 @@ class TeacherService
         $pdo->beginTransaction();
 
         try {
-            $loginId = 'tmp' . date('YmdHis') . str_pad((string)rand(0, 999), 3, '0', STR_PAD_LEFT);
             $parishId = !empty($data['parish_id']) ? $data['parish_id'] : null;
             if (!$parishId && !empty($data['org_cd'])) {
                 $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)$data['org_cd']]);
@@ -113,24 +123,22 @@ class TeacherService
             }
 
             $sqlTeacher = "INSERT INTO teachers (
-                parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email,
-                post_code, address_basic, address_detail, department, status, current_grade, position, photo_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)";
+                parish_id, name, baptismal_name, birth_date, feast_day, mobile_phone, email,
+                department, status, current_grade, position, photo_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)";
 
             $this->db->query($sqlTeacher, [
-                $parishId, $loginId, $data['name'], $data['bname'], $data['jumin_f'], $data['bday'],
-                $data['phone2'], $data['phone1'], $data['email'],
-                $data['postcode'], $data['addr1'], $data['addr2'],
+                $parishId, $data['name'], $data['bname'], $data['birth_date'] ?? null, $data['bday'],
+                $data['phone1'], $data['email'],
                 $this->mapDepartment($data['academy']), $data['current_grade'] ?? null, $data['position'] ?? '',
                 $data['photo_path'] ?? null
             ]);
 
-            $teacherId = $pdo->lastInsertId();
+            $teacherId = (int)$pdo->lastInsertId();
 
             $this->db->query("INSERT INTO teacher_tenure (teacher_id, start_year, start_month) VALUES (?, ?, ?)", 
                 [$teacherId, $data['cs_year'], $data['cs_month']]);
 
-            // Optional: Initial furloughs/education if provided in $data
             if (isset($data['furloughs']) && is_array($data['furloughs'])) {
                 foreach ($data['furloughs'] as $f) {
                     $this->db->query("INSERT INTO teacher_furloughs (teacher_id, reason, start_date, end_date) VALUES (?, ?, ?, ?)", [
@@ -147,7 +155,7 @@ class TeacherService
             }
 
             $pdo->commit();
-            return $loginId;
+            return $teacherId;
         } catch (\Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Create Teacher V2 Error: " . $e->getMessage());
@@ -155,15 +163,11 @@ class TeacherService
         }
     }
 
-    public function deleteTeacher(string $loginId): bool
+    public function deleteTeacher(int $id): bool
     {
         $pdo = $this->db->getPdo();
         $pdo->beginTransaction();
         try {
-            $teacher = $this->db->fetch("SELECT id FROM teachers WHERE login_id = ?", [$loginId]);
-            if (!$teacher) return false;
-            
-            $id = $teacher['id'];
             $this->db->query("DELETE FROM teacher_tenure WHERE teacher_id = ?", [$id]);
             $this->db->query("DELETE FROM teacher_furloughs WHERE teacher_id = ?", [$id]);
             $this->db->query("DELETE FROM teacher_awards WHERE teacher_id = ?", [$id]);
@@ -179,23 +183,19 @@ class TeacherService
         }
     }
 
-    public function getTeacher(string $loginId): ?array
+    public function getTeacher(int $id): ?array
     {
         $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.org_cd
                 FROM teachers t
                 LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
                 LEFT JOIN parishes p ON t.parish_id = p.id
-                WHERE t.login_id = ?";
-        $teacher = $this->db->fetch($sql, [$loginId]);
+                WHERE t.id = ?";
+        $teacher = $this->db->fetch($sql, [$id]);
         if ($teacher) {
-            // Map back to legacy field names for views
             $teacher['phone1'] = $teacher['mobile_phone'];
-            $teacher['phone2'] = $teacher['home_phone'];
             $teacher['bday'] = $teacher['feast_day'] ? str_replace('-', '/', $teacher['feast_day']) : '';
             $teacher['bname'] = $teacher['baptismal_name'];
-            
-            // Furloughs (New dynamic structure)
-            $teacher['furloughs'] = $this->db->fetchAll("SELECT * FROM teacher_furloughs WHERE teacher_id = ? ORDER BY start_date ASC", [$teacher['id']]);
+            $teacher['furloughs'] = $this->db->fetchAll("SELECT * FROM teacher_furloughs WHERE teacher_id = ? ORDER BY start_date ASC", [$id]);
         }
         return $teacher;
     }
@@ -280,9 +280,8 @@ class TeacherService
             $params[] = $yearLimit;
         }
 
-        if (!empty($filters['search']) && !empty($filters['category'])) {
-            $field = $filters['category'] === 'name' ? 't.name' : 't.login_id';
-            $whereSql .= " AND {$field} LIKE ?";
+        if (!empty($filters['search'])) {
+            $whereSql .= " AND t.name LIKE ?";
             $params[] = "%{$filters['search']}%";
         }
 
@@ -387,9 +386,8 @@ class TeacherService
             $joinTenure = true;
         }
 
-        if (!empty($filters['search']) && !empty($filters['category'])) {
-            $field = $filters['category'] === 'name' ? 't.name' : 't.login_id';
-            $whereSql .= " AND {$field} LIKE ?";
+        if (!empty($filters['search'])) {
+            $whereSql .= " AND t.name LIKE ?";
             $params[] = "%{$filters['search']}%";
         }
 
@@ -407,23 +405,79 @@ class TeacherService
         return (int)($result['total'] ?? 0);
     }
 
-    public function getAwards(string $loginId): array
+    public function getAwards(int $id): array
     {
-        $sql = "SELECT ta.award_year as tml_year, ta.award_type as tml 
-                FROM teacher_awards ta
-                JOIN teachers t ON ta.teacher_id = t.id
-                WHERE t.login_id = ? ORDER BY ta.award_year ASC";
-        return $this->db->fetchAll($sql, [$loginId]);
+        $sql = "SELECT award_year as tml_year, award_type as tml 
+                FROM teacher_awards
+                WHERE teacher_id = ? ORDER BY award_year ASC";
+        return $this->db->fetchAll($sql, [$id]);
     }
 
-    public function getEducationDetails(string $loginId): array
+    public function getEducationDetails(int $id): array
     {
         $sql = "SELECT ec.course_name as edu_title, er.completion_date as edu_dt, ec.id as course_id
                 FROM education_records er
-                JOIN teachers t ON er.teacher_id = t.id
                 JOIN education_courses ec ON er.course_id = ec.id
-                WHERE t.login_id = ? ORDER BY er.completion_date ASC";
-        return $this->db->fetchAll($sql, [$loginId]);
+                WHERE er.teacher_id = ? 
+                AND ec.course_name NOT IN ('기본교육(구입문과정)', '구심화과정', '양성교육(구전문화과정)')
+                ORDER BY er.completion_date ASC";
+        return $this->db->fetchAll($sql, [$id]);
+    }
+
+    public function getCoreEducation(int $id): array
+    {
+        $stages = [
+            '기본교육(구입문과정)',
+            '구심화과정',
+            '양성교육(구전문화과정)'
+        ];
+        
+        $results = [];
+        foreach ($stages as $name) {
+            $sql = "SELECT er.completion_date, ec.id as course_id
+                    FROM education_records er
+                    JOIN education_courses ec ON er.course_id = ec.id
+                    WHERE er.teacher_id = ? AND ec.course_name = ?";
+            $row = $this->db->fetch($sql, [$id, $name]);
+            
+            if ($row) {
+                $date = new \DateTime($row['completion_date']);
+                $results[$name] = [
+                    'year' => $date->format('Y'),
+                    'month' => (int)$date->format('m'),
+                    'is_completed' => true,
+                    'course_id' => $row['course_id']
+                ];
+            } else {
+                $results[$name] = [
+                    'year' => '',
+                    'month' => '',
+                    'is_completed' => false,
+                    'course_id' => null
+                ];
+            }
+        }
+        return $results;
+    }
+
+    public function getEducationBatch(array $teacherIds): array
+    {
+        if (empty($teacherIds)) return [];
+        
+        $placeholders = implode(',', array_fill(0, count($teacherIds), '?'));
+        $sql = "SELECT er.teacher_id, ec.course_name 
+                FROM education_records er
+                JOIN education_courses ec ON er.course_id = ec.id
+                WHERE er.teacher_id IN ($placeholders)
+                AND ec.course_name IN ('기본교육(구입문과정)', '구심화과정', '양성교육(구전문화과정)')";
+        
+        $rows = $this->db->fetchAll($sql, $teacherIds);
+        
+        $results = [];
+        foreach ($rows as $row) {
+            $results[$row['teacher_id']][] = $row['course_name'];
+        }
+        return $results;
     }
 
 
@@ -448,17 +502,13 @@ class TeacherService
         return $grouped;
     }
 
-    public function updateAwards(string $loginId, array $awards): void
+    public function updateAwards(int $id, array $awards): void
     {
-        $teacher = $this->db->fetch("SELECT id FROM teachers WHERE login_id = ?", [$loginId]);
-        if (!$teacher) return;
-        $teacherId = $teacher['id'];
-
-        $this->db->query("DELETE FROM teacher_awards WHERE teacher_id = ?", [$teacherId]);
+        $this->db->query("DELETE FROM teacher_awards WHERE teacher_id = ?", [$id]);
         foreach ($awards as $award) {
             if (empty($award['tml_year']) || empty($award['tml'])) continue;
             $this->db->query("INSERT INTO teacher_awards (teacher_id, award_year, award_type) VALUES (?, ?, ?)", 
-                [$teacherId, $award['tml_year'], $award['tml']]);
+                [$id, $award['tml_year'], $award['tml']]);
         }
     }
 

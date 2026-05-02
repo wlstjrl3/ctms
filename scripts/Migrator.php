@@ -8,6 +8,7 @@
 
 class Migrator {
     private $db;
+    private array $legacyIdMap = [];
 
     public function __construct() {
         // Load .env file
@@ -49,6 +50,7 @@ class Migrator {
         $this->migrateTeachers();
         $this->migrateFurloughs();
         $this->migrateAwards();
+        $this->migrateAcademyStages();
         $this->consolidateCourses();
         
         echo "Migration Finished Successfully.\n";
@@ -175,6 +177,13 @@ class Migrator {
 
         $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_date DATETIME");
         $this->db->query("ALTER TABLE edu_schedule_new MODIFY COLUMN edu_subject VARCHAR(255)");
+
+        // DROP login_id from teachers if it still exists
+        $tchCols = $this->db->query("SHOW COLUMNS FROM teachers LIKE 'login_id'")->fetchAll();
+        if (!empty($tchCols)) {
+            $this->db->query("ALTER TABLE teachers DROP COLUMN login_id");
+            echo "  - Dropped login_id column from teachers.\n";
+        }
     }
 
     private function clearTables() {
@@ -352,8 +361,8 @@ class Migrator {
 
         $stmt = $this->db->prepare("
             REPLACE INTO teachers 
-            (parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email, department, position, status, current_grade)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (parish_id, name, baptismal_name, birth_date, feast_day, mobile_phone, email, department, position, status, current_grade)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         // PHASE 1: Active Teachers from bd_member_right
@@ -424,13 +433,16 @@ class Migrator {
             $finalRemarks = implode("\n", $remarksParts);
 
             $stmt->execute([
-                $parishId, $row['login_id'], $row['name'], $row['bname'], $birthDate, $feastDay, 
-                $row['phone2'], $row['phone1'], null,
+                $parishId, $row['name'], $row['bname'], $birthDate, $feastDay, 
+                $row['phone2'], null,
                 $deptMap[$row['academy']] ?? 'elementary',
                 $positions[$row['type_num']] ?? '교사',
                 $status,
                 $finalRemarks
             ]);
+            // Map legacy login_id -> new teachers.id
+            $newId = (int)$this->db->lastInsertId();
+            if ($newId > 0) $this->legacyIdMap[$row['login_id']] = $newId;
         }
 
         // PHASE 2: Retired Teachers from MPLUS_MEMBER_LIST (using INSERT IGNORE)
@@ -439,8 +451,8 @@ class Migrator {
         
         $stmtRetired = $this->db->prepare("
             INSERT IGNORE INTO teachers 
-            (parish_id, login_id, name, baptismal_name, birth_date, feast_day, mobile_phone, home_phone, email, department, position, status, current_grade)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (parish_id, name, baptismal_name, birth_date, feast_day, mobile_phone, email, department, position, status, current_grade)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($allMembers as $row) {
@@ -463,10 +475,13 @@ class Migrator {
             }
 
             $stmtRetired->execute([
-                $parishId, $row['strLoginID'], $row['strLoginName'], $row['strNick'] ?? '', $birthDate, null,
-                $row['strMobile'], $row['strHomeTel'], $row['strEmail'],
+                $parishId, $row['strLoginName'], $row['strNick'] ?? '', $birthDate, null,
+                $row['strMobile'], $row['strEmail'],
                 'elementary', '교사', 'retired', 'Legacy Retired'
             ]);
+            
+            $newId = (int)$this->db->lastInsertId();
+            if ($newId > 0) $this->legacyIdMap[$row['strLoginID']] = $newId;
         }
 
         $this->migrateTenure();
@@ -487,19 +502,20 @@ class Migrator {
             '대화' => '리더십/소통', '소통' => '리더십/소통', '리더' => '리더십/소통'
         ];
 
-        // Use a more robust join-based insert with DISTINCT or specific mapping
         $insertRecord = $this->db->prepare("
             INSERT IGNORE INTO education_records (teacher_id, course_id, completion_date, status)
-            SELECT t.id, c.id, ?, 'Completed'
-            FROM teachers t
-            JOIN education_courses c ON c.course_name = ?
-            WHERE t.login_id = ?
+            SELECT ?, c.id, ?, 'Completed'
+            FROM education_courses c
+            WHERE c.course_name = ?
             LIMIT 1
         ");
 
         foreach ($eduData as $row) {
             $courseName = trim($row['edu_title']);
             if (empty($courseName)) continue;
+
+            $tid = $this->legacyIdMap[$row['login_id']] ?? null;
+            if (!$tid) continue;
 
             $cat = '[미분류]';
             foreach ($categories as $key => $val) {
@@ -514,11 +530,61 @@ class Migrator {
             
             // 2. Insert record
             $insertRecord->execute([
+                $tid,
                 $row['edu_dt'],
-                $courseName,
-                $row['login_id']
+                $courseName
             ]);
         }
+    }
+
+    private function migrateAcademyStages() {
+        echo "- Migrating Academy Stages (Basic, Advanced, Training) from academy_state...\n";
+        
+        $stages = [
+            '03' => ['name' => '기본교육(구입문과정)', 'cat' => '필수교육'],
+            '04' => ['name' => '구심화과정', 'cat' => '필수교육'],
+            '05' => ['name' => '양성교육(구전문화과정)', 'cat' => '필수교육']
+        ];
+
+        $insertCourse = $this->db->prepare("INSERT IGNORE INTO education_courses (course_name, category) VALUES (?, ?)");
+        $insertRecord = $this->db->prepare("
+            INSERT IGNORE INTO education_records (teacher_id, course_id, completion_date, status)
+            SELECT ?, c.id, ?, 'Completed'
+            FROM education_courses c
+            WHERE c.course_name = ?
+            LIMIT 1
+        ");
+
+        // Fetch data from academy_state
+        $stmt = $this->db->query("SELECT * FROM academy_state");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($data as $row) {
+            $tid = $this->legacyIdMap[$row['login_id']] ?? null;
+            if (!$tid) continue;
+
+            foreach ($stages as $idx => $info) {
+                $year = $row["ac_year{$idx}"] ?? '';
+                $term = $row["ac_term{$idx}"] ?? '';
+                $isCompleted = ($row["ac_in{$idx}"] ?? '') == '1';
+
+                if ($isCompleted && !empty($year)) {
+                    // Ensure course exists
+                    $insertCourse->execute([$info['name'], $info['cat']]);
+                    
+                    // Construct completion date (YYYY-MM-01)
+                    $month = !empty($term) ? str_pad($term, 2, '0', STR_PAD_LEFT) : '01';
+                    $date = "{$year}-{$month}-01";
+
+                    $insertRecord->execute([
+                        $tid,
+                        $date,
+                        $info['name']
+                    ]);
+                }
+            }
+        }
+        echo "  - Academy stages migration complete.\n";
     }
 
     private function migrateTenure() {
@@ -527,12 +593,12 @@ class Migrator {
         $tenures = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $insertTenure = $this->db->prepare("
-            INSERT IGNORE INTO teacher_tenure (teacher_id, start_year, start_month)
-            SELECT id, ?, ? FROM teachers WHERE login_id = ?
+            INSERT IGNORE INTO teacher_tenure (teacher_id, start_year, start_month) VALUES (?, ?, ?)
         ");
 
         foreach ($tenures as $row) {
-            $insertTenure->execute([$row['cs_year'], $row['cs_month'], $row['login_id']]);
+            $tid = $this->legacyIdMap[$row['login_id']] ?? null;
+            if ($tid) $insertTenure->execute([$tid, $row['cs_year'], $row['cs_month']]);
         }
     }
 
@@ -542,32 +608,35 @@ class Migrator {
         
         $stmt = $this->db->prepare("
             INSERT IGNORE INTO teacher_furloughs (teacher_id, reason, start_date, end_date)
-            SELECT id, ?, ?, ? FROM teachers WHERE login_id = ?
+            VALUES (?, ?, ?, ?)
         ");
 
         foreach ($legacy as $row) {
+            $tid = $this->legacyIdMap[$row['login_id']] ?? null;
+            if (!$tid) continue;
+
             if ($row['reason1'] > 0) {
                 $stmt->execute([
+                    $tid,
                     $row['reason1'],
                     substr($row['rsdt1'], 0, 10),
-                    ($row['rsdt2'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt2'], 0, 10),
-                    $row['login_id']
+                    ($row['rsdt2'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt2'], 0, 10)
                 ]);
             }
             if ($row['reason2'] > 0) {
                 $stmt->execute([
+                    $tid,
                     $row['reason2'],
                     substr($row['rsdt3'], 0, 10),
-                    ($row['rsdt4'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt4'], 0, 10),
-                    $row['login_id']
+                    ($row['rsdt4'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt4'], 0, 10)
                 ]);
             }
             if ($row['reason3'] > 0) {
                 $stmt->execute([
+                    $tid,
                     $row['reason3'],
                     substr($row['rsdt5'], 0, 10),
-                    ($row['rsdt6'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt6'], 0, 10),
-                    $row['login_id']
+                    ($row['rsdt6'] == '1900-01-01 00:00:00') ? null : substr($row['rsdt6'], 0, 10)
                 ]);
             }
         }
@@ -580,15 +649,18 @@ class Migrator {
 
         $insertAward = $this->db->prepare("
             INSERT IGNORE INTO teacher_awards (teacher_id, award_type, award_year, remarks)
-            SELECT id, ?, ?, ? FROM teachers WHERE login_id = ?
+            VALUES (?, ?, ?, ?)
         ");
 
         foreach ($awards as $row) {
+            $tid = $this->legacyIdMap[$row['login_id']] ?? null;
+            if (!$tid) continue;
+
             $insertAward->execute([
+                $tid,
                 $row['tml'], 
                 $row['tml_year'], 
-                $row['tml_memo'] ?? null,
-                $row['login_id']
+                $row['tml_memo'] ?? null
             ]);
         }
     }

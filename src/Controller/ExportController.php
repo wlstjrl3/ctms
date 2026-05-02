@@ -28,20 +28,27 @@ class ExportController
         }
 
         $bcode = (string)$session->get('bcode', '');
+        $orgCd = ($session->getRole() === 'bondang') ? (string)$session->get('org_cd', '') : '';
         
         // Fetch all teachers matching filters but without pagination
-        $filters = [
-            'search'   => $_GET['search'] ?? '',
-            'category' => $_GET['search_category'] ?? 'name',
-            'academy'  => $_GET['academy'] ?? 'all'
-        ];
+        $filters = $_GET;
 
         // Release session lock for long-running export
         session_write_close();
 
         // We use a high limit for export
-        $teachers = $this->teacherService->getTeacherList($bcode, $filters, 1, 10000);
+        $teachers = $this->teacherService->getTeacherList($orgCd, $filters, 1, 10000);
         
+        // Solve N+1: Fetch awards and core education for all teachers in one go
+        $teacherIds = array_column($teachers, 'id');
+        $allAwards = $this->teacherService->getAwardsBatch($teacherIds);
+        $allEdu = $this->teacherService->getEducationBatch($teacherIds);
+
+        foreach ($teachers as &$teacher) {
+            $teacher['awards'] = $allAwards[$teacher['id']] ?? [];
+            $teacher['core_edu_list'] = $allEdu[$teacher['id']] ?? [];
+        }
+
         $csv = $this->exportService->exportTeachersToCsv($teachers);
 
         $filename = "teachers_export_" . date('YmdHis') . ".csv";

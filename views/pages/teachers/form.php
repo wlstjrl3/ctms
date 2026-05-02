@@ -19,7 +19,7 @@ function isChecked($val1, $val2) {
 
 <form id="teacherForm" action="<?= $base ?>index.php?action=save_teacher" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="mode" value="<?= $mode ?>">
-    <input type="hidden" name="login_id" value="<?= $teacher['login_id'] ?? '' ?>">
+    <input type="hidden" name="id" value="<?= $teacher['id'] ?? 0 ?>">
 
     <div class="dashboard-grid">
         
@@ -41,7 +41,7 @@ function isChecked($val1, $val2) {
                 <input type="file" id="photo-input" name="photo" accept="image/jpeg,image/png" style="display: none;" onchange="previewImage(this)">
                 
                 <h3 style="margin-bottom: 0.5rem;"><?= htmlspecialchars($teacher['name'] ?? '신규 교사') ?></h3>
-                <p style="color: var(--text-muted); font-size: 0.875rem;"><?= htmlspecialchars($teacher['login_id'] ?? '-') ?></p>
+                <p style="color: var(--text-muted); font-size: 0.875rem;"><?= $teacher['id'] ? '#' . $teacher['id'] : '신규' ?></p>
                 
                 <div style="margin-top: 2rem; text-align: left; font-size: 0.875rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
@@ -108,21 +108,11 @@ function isChecked($val1, $val2) {
                     </div>
                     <div class="form-group">
                         <label>휴대전화</label>
-                        <input type="text" name="phone2" value="<?= htmlspecialchars($teacher['mobile_phone'] ?? '') ?>">
+                        <input type="text" name="phone1" value="<?= htmlspecialchars($teacher['mobile_phone'] ?? '') ?>" placeholder="010-0000-0000">
                     </div>
                     <div class="form-group">
-                        <label>자택전화</label>
-                        <input type="text" name="phone1" value="<?= htmlspecialchars($teacher['home_phone'] ?? '') ?>">
-                    </div>
-                    <div class="form-group" style="grid-column: span 2;">
                         <label>이메일</label>
-                        <input type="email" name="email" value="<?= htmlspecialchars($teacher['email'] ?? '') ?>">
-                    </div>
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>주소</label>
-                        <input type="text" name="postcode" value="<?= htmlspecialchars($teacher['post_code'] ?? '') ?>" placeholder="우편번호" style="width: 120px; margin-bottom: 0.5rem; display: block;">
-                        <input type="text" name="addr1" value="<?= htmlspecialchars($teacher['address_basic'] ?? '') ?>" placeholder="기본 주소" style="margin-bottom: 0.5rem;">
-                        <input type="text" name="addr2" value="<?= htmlspecialchars($teacher['address_detail'] ?? '') ?>" placeholder="상세 주소">
+                        <input type="email" name="email" value="<?= htmlspecialchars($teacher['email'] ?? '') ?>" placeholder="example@mail.com">
                     </div>
                 </div>
             </div>
@@ -292,7 +282,51 @@ function isChecked($val1, $val2) {
             <div id="tab-edu_detail" class="tab-content" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                     <h4 style="color: var(--primary); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
-                        <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">📚</span> 과목별 수료 현황
+                        <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">📚</span> 교리교사 교육과정 수료현황
+                    </h4>
+                </div>
+
+                <!-- 핵심 3단계 교육과정 -->
+                <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2.5rem; background: rgba(79, 70, 229, 0.03);">
+                    <div style="display: grid; grid-template-columns: 1fr 120px 100px 100px; gap: 1rem; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--glass-border); margin-bottom: 1rem; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">
+                        <div>단계</div>
+                        <div style="text-align: center;">년도</div>
+                        <div style="text-align: center;">월</div>
+                        <div style="text-align: center;">수료</div>
+                    </div>
+                    <?php 
+                        $coreStages = [
+                            '기본교육(구입문과정)' => '기본교육(구입문과정)',
+                            '구심화과정' => '구심화과정',
+                            '양성교육(구전문화과정)' => '양성교육(구전문화과정)'
+                        ];
+                        $coreEdu = $teacher['core_edu'] ?? [];
+                        foreach ($coreStages as $stageName => $displayName):
+                            $edu = $coreEdu[$stageName] ?? ['year' => '', 'month' => '', 'is_completed' => false];
+                    ?>
+                    <div style="display: grid; grid-template-columns: 1fr 120px 100px 100px; gap: 1rem; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-weight: 600; color: var(--text-main);"><?= $displayName ?></div>
+                        <div style="position: relative;">
+                            <input type="text" name="core_year[<?= $stageName ?>]" value="<?= htmlspecialchars($edu['year']) ?>" placeholder="YYYY" style="text-align: center; padding-right: 1.5rem;">
+                            <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">년</span>
+                        </div>
+                        <div style="position: relative;">
+                            <input type="text" name="core_month[<?= $stageName ?>]" value="<?= htmlspecialchars((string)$edu['month']) ?>" placeholder="MM" style="text-align: center; padding-right: 1.5rem;">
+                            <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.65rem; color: var(--text-muted);">월</span>
+                        </div>
+                        <div style="text-align: center;">
+                            <label class="switch">
+                                <input type="checkbox" name="core_in[<?= $stageName ?>]" value="1" <?= $edu['is_completed'] ? 'checked' : '' ?> data-original="<?= $edu['is_completed'] ? 'true' : 'false' ?>">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h4 style="color: var(--primary); display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem;">
+                        <span style="background: rgba(79, 70, 229, 0.1); padding: 0.5rem; border-radius: 8px;">📖</span> 과목별 수료 현황
                     </h4>
                     <button type="button" class="btn" onclick="addEducation()" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
                         + 교육 추가
@@ -341,6 +375,17 @@ function isChecked($val1, $val2) {
     
     .award-item, .furlough-item, .edu-item { transition: all 0.3s ease; }
     .award-item:hover, .furlough-item:hover, .edu-item:hover { transform: translateY(-2px); border-color: var(--primary) !important; }
+
+    /* Switch Styles */
+    .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border: 1px solid var(--glass-border); }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 2px; background-color: white; transition: .4s; }
+    input:checked + .slider { background-color: var(--primary); border-color: var(--primary); }
+    input:focus + .slider { box-shadow: 0 0 1px var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .slider.round { border-radius: 34px; }
+    .slider.round:before { border-radius: 50%; }
 </style>
 
 <script>
@@ -483,7 +528,7 @@ let isSaving = false;
 function initAutoSave() {
     // Standard inputs
     document.querySelectorAll('input, select, textarea').forEach(el => {
-        if (!el.name || ['login_id', 'mode', 'photo'].includes(el.name)) return;
+        if (!el.name || ['id', 'mode', 'photo'].includes(el.name)) return;
         
         // Handle dynamic arrays (furlough, awards, edu)
         if (el.name.includes('[]')) {
@@ -499,7 +544,7 @@ function initAutoSave() {
         el.setAttribute('data-original', el.value);
 
         // Listen for changes
-        const eventType = el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'blur';
+        const eventType = el.tagName === 'SELECT' || el.type === 'date' || el.type === 'checkbox' ? 'change' : 'blur';
         el.addEventListener(eventType, handleFieldChange);
         
         if (el.tagName === 'INPUT' && el.type === 'text') {
@@ -515,8 +560,8 @@ function initAutoSave() {
 
 async function handleFieldChange(e) {
     const el = e.target;
-    const original = el.getAttribute('data-original');
-    const current = el.value;
+    const original = el.type === 'checkbox' ? (el.getAttribute('data-original') === 'true') : el.getAttribute('data-original');
+    const current = el.type === 'checkbox' ? el.checked : el.value;
 
     if (original === current || isSaving) return;
 
@@ -561,7 +606,7 @@ async function handleFieldChange(e) {
     if (shouldSave) {
         const success = await performAjaxSave();
         if (success) {
-            el.setAttribute('data-original', current);
+            el.setAttribute('data-original', el.type === 'checkbox' ? el.checked : current);
             showAutoSaveStatus('저장됨');
         } else {
             alert('저장 중 오류가 발생했습니다.');
@@ -585,10 +630,10 @@ async function performAjaxSave() {
         const result = await response.json();
         
         // If we were in create mode and just created a teacher, update the ID and switch to edit mode
-        if (result.success && result.login_id) {
-            const loginIdInput = document.querySelector('input[name="login_id"]');
+        if (result.success && result.id) {
+            const idInput = document.querySelector('input[name="id"]');
             const modeInput = document.querySelector('input[name="mode"]');
-            if (loginIdInput) loginIdInput.value = result.login_id;
+            if (idInput) idInput.value = result.id;
             if (modeInput) modeInput.value = 'edit';
         }
 
@@ -695,47 +740,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function deleteTeacherProfile() {
     if (confirm('이 교사의 모든 정보(이력, 수상, 교육 등)가 영구적으로 삭제됩니다.\n데이터를 복구할 수 없습니다. 정말 삭제하시겠습니까?')) {
-        const loginId = document.querySelector('input[name="login_id"]').value;
+        const teacherId = document.querySelector('input[name="id"]').value;
         const base = '<?= $base ?>';
-        window.location.href = `${base}index.php?action=teacher_delete&login_id=${loginId}`;
+        window.location.href = `${base}index.php?action=teacher_delete&id=${teacherId}`;
     }
 }
 // --- End Auto-Save Logic ---
 </script>
 
 <!-- Parish Search Modal -->
-<div id="parishModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center;">
-    <div class="glass-card" style="width: 500px; max-width: 90%; padding: 2rem; position: relative;">
-        <button type="button" onclick="closeParishModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
-        <h2 style="margin-bottom: 1.5rem;">본당 검색</h2>
+<div id="parishModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(5px); align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 550px; max-width: 95%; padding: 1.25rem; position: relative;">
+        <button type="button" onclick="closeParishModal()" style="position: absolute; right: 1rem; top: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">&times;</button>
+        <h3 style="margin-bottom: 1.25rem; font-size: 1.1rem;">본당 검색</h3>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div style="display: grid; grid-template-columns: 120px 110px 1fr; gap: 0.5rem; margin-bottom: 1rem;">
             <div class="form-group" style="margin: 0;">
-                <label style="font-size: 0.8rem; color: var(--text-muted);">대리구</label>
-                <select id="parish_search_vicariate" onchange="filterDistricts(this.value); searchParish()" style="width: 100%; background: var(--bg-dark);">
-                    <option value="">전체 대리구</option>
+                <select id="parish_search_vicariate" onchange="filterDistricts(this.value); searchParish()" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--glass-border); border-radius: 6px; padding: 0.4rem; font-size: 0.85rem;">
+                    <option value="">대리구 전체</option>
                     <?php foreach ($vicariates as $v): ?>
                         <option value="<?= $v['id'] ?>"><?= htmlspecialchars($v['GYOGU']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group" style="margin: 0;">
-                <label style="font-size: 0.8rem; color: var(--text-muted);">지구</label>
-                <select id="parish_search_district" onchange="searchParish()" style="width: 100%; background: var(--bg-dark);">
-                    <option value="">전체 지구</option>
+                <select id="parish_search_district" onchange="searchParish()" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--glass-border); border-radius: 6px; padding: 0.4rem; font-size: 0.85rem;">
+                    <option value="">지구 전체</option>
                     <?php foreach ($districts as $d): ?>
                         <option value="<?= $d['id'] ?>" data-vicariate="<?= $d['vicariate_id'] ?>"><?= htmlspecialchars($d['JIGU']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="form-group" style="margin: 0;">
+                <input type="text" id="parish_search_keyword" placeholder="본당명 검색..." onkeyup="searchParish()" style="width: 100%; padding: 0.4rem 0.75rem; background: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 6px; color: var(--text-main); font-size: 0.85rem;">
+            </div>
         </div>
 
-        <div class="form-group">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">본당명</label>
-            <input type="text" id="parish_search_keyword" placeholder="본당명 입력..." onkeyup="searchParish()" style="width: 100%; padding: 1rem; background: var(--bg-dark); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text-main);">
-        </div>
-
-        <div id="parish_search_results" style="max-height: 250px; overflow-y: auto; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+        <div id="parish_search_results" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
             <p style="text-align: center; color: var(--text-muted); padding: 2rem;">검색 조건을 입력하거나 선택하세요</p>
         </div>
     </div>
@@ -790,9 +831,12 @@ function deleteTeacherProfile() {
                     }
 
                     container.innerHTML = data.map(p => `
-                        <div class="search-result-item" onclick="selectParish(${p.id}, '${p.parish_name}', '${p.diocese_name || ''}')" style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent;">
-                            <div style="font-weight: 600; color: var(--primary);">[${p.diocese_name || '대리구 없음'}] ${p.parish_name}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">${p.district_name || ''}</div>
+                        <div class="search-result-item" onclick="selectParish(${p.id}, '${p.parish_name}', '${p.diocese_name || ''}')" style="cursor: pointer; transition: 0.2s;">
+                            <div style="font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 4px;">
+                                <span style="color: var(--text-muted); font-size: 0.75rem;">[${p.diocese_name || '대리구'}]</span>
+                                <span style="color: var(--accent); font-size: 0.75rem;">[${p.district_name || '지구'}]</span>
+                                <span style="color: var(--primary); margin-left: 2px;">${p.parish_name}</span>
+                            </div>
                         </div>
                     `).join('');
                 });
@@ -862,6 +906,11 @@ function deleteTeacherProfile() {
         .search-result-item:hover {
             background: rgba(79, 70, 229, 0.1) !important;
             border-color: var(--primary) !important;
+        }
+        .search-result-item {
+            padding: 0.6rem 0.85rem !important;
+            background: rgba(255,255,255,0.03) !important;
+            border-radius: 6px !important;
         }
     `;
     document.head.appendChild(style);

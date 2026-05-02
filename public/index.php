@@ -93,7 +93,7 @@ if ($action === 'login') {
             (new \App\Controller\TeacherController())->index();
             break;
         case 'teacher_edit':
-            (new \App\Controller\TeacherController())->edit($_GET['login_id'] ?? '');
+            (new \App\Controller\TeacherController())->edit((int)($_GET['id'] ?? 0));
             break;
         case 'teacher_create':
             (new \App\Controller\TeacherController())->create();

@@ -117,7 +117,7 @@ class ParishService
         // Use ORG_CD as ID for consistency with ORG_INFO focus
         $sql = "SELECT ORG_CD as id, ORG_NM as GYOGU, ORG_CD as GCODE 
                 FROM ORG_INFO 
-                WHERE ORG_CD LIKE '1306%' 
+                WHERE ORG_CD LIKE '1306%' AND USE_YN = 'Y'
                 ORDER BY ORG_CD ASC";
         return $this->db->fetchAll($sql);
     }
@@ -140,7 +140,14 @@ class ParishService
                     vic.ORG_NM as GYOGU
                 FROM ORG_INFO dist
                 LEFT JOIN ORG_INFO vic ON dist.UPPR_ORG_CD = vic.ORG_CD
-                WHERE dist.ORG_CD LIKE '1309%' AND dist.USE_YN = 'Y' {$where}
+                WHERE dist.ORG_CD LIKE '1309%' AND dist.USE_YN = 'Y' 
+                AND EXISTS (
+                    SELECT 1 FROM ORG_INFO p 
+                    WHERE p.UPPR_ORG_CD = dist.ORG_CD 
+                    AND p.ORG_CD LIKE '1311%' 
+                    AND p.USE_YN = 'Y'
+                )
+                {$where}
                 ORDER BY dist.ORG_CD ASC";
         return $this->db->fetchAll($sql, $params);
     }
@@ -151,7 +158,7 @@ class ParishService
      */
     public function searchParishes(array $filters): array
     {
-        $where = "WHERE o.ORG_CD LIKE '1311%'";
+        $where = "WHERE o.ORG_CD LIKE '1311%' AND o.USE_YN = 'Y' AND dist.USE_YN = 'Y' AND vic.USE_YN = 'Y'";
         $params = [];
 
         if (!empty($filters['vicariate_id'])) {
@@ -173,8 +180,7 @@ class ParishService
                 LEFT JOIN ORG_INFO vic ON dist.UPPR_ORG_CD = vic.ORG_CD
                 LEFT JOIN parishes p ON p.org_cd = o.ORG_CD
                 {$where}
-                ORDER BY o.ORG_NM ASC
-                LIMIT 50";
+                ORDER BY o.ORG_NM ASC";
 
         return $this->db->fetchAll($sql, $params);
     }

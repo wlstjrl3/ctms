@@ -34,6 +34,10 @@ class TeacherController
 
         $educationService = new \App\Service\EducationService();
         $courses = $educationService->getActiveCourses();
+        
+        $parishService = new ParishService();
+        $vicariates = $parishService->getDioceses();
+        $districts = $parishService->getDistricts();
 
         $teachers = $this->service->getTeacherList($orgCd, $filters, $page, $pageSize);
         $totalCount = $this->service->getTeacherCount($orgCd, $filters);
@@ -41,12 +45,14 @@ class TeacherController
 
         $parishes = []; // No longer needed for select box, using text input instead
 
-        // Solve N+1: Fetch awards for all teachers in one go
+        // Solve N+1: Fetch awards and core education for all teachers in one go
         $teacherIds = array_column($teachers, 'id');
         $allAwards = $this->service->getAwardsBatch($teacherIds);
+        $allEdu = $this->service->getEducationBatch($teacherIds);
 
         foreach ($teachers as &$teacher) {
             $teacher['awards'] = $allAwards[$teacher['id']] ?? [];
+            $teacher['core_edu_list'] = $allEdu[$teacher['id']] ?? [];
         }
 
         require __DIR__ . '/../../views/layouts/header.php';
@@ -76,8 +82,10 @@ class TeacherController
         
         $teacherIds = array_column($teachers, 'id');
         $allAwards = $this->service->getAwardsBatch($teacherIds);
+        $allEdu = $this->service->getEducationBatch($teacherIds);
         foreach ($teachers as &$teacher) {
             $teacher['awards'] = $allAwards[$teacher['id']] ?? [];
+            $teacher['core_edu_list'] = $allEdu[$teacher['id']] ?? [];
         }
 
         $base = App::getInstance()->getBasePath();
@@ -106,7 +114,7 @@ class TeacherController
         exit;
     }
 
-    public function edit(string $loginId): void
+    public function edit(int $id): void
     {
         $session = App::getInstance()->session();
         if (!$session->isLoggedIn()) {
@@ -114,19 +122,20 @@ class TeacherController
             exit;
         }
 
-        $teacher = $this->service->getTeacher($loginId);
+        $teacher = $this->service->getTeacher($id);
         if (!$teacher) {
             header('Location: index.php?page=teacher_list&error=not_found');
             exit;
         }
 
         $parishService = new ParishService();
-        $parishes = $parishService->getParishList([], 1, 500); // Fetch all for select
+        $parishes = $parishService->getParishList([], 1, 500);
         $vicariates = $parishService->getDioceses();
         $districts = $parishService->getDistricts();
 
-        $teacher['awards'] = $this->service->getAwards($loginId);
-        $teacher['edu_details'] = $this->service->getEducationDetails($loginId);
+        $teacher['awards'] = $this->service->getAwards($id);
+        $teacher['edu_details'] = $this->service->getEducationDetails($id);
+        $teacher['core_edu'] = $this->service->getCoreEducation($id);
 
         $mode = 'edit';
         $title = '교사 정보 수정';
@@ -160,10 +169,10 @@ class TeacherController
 
     public function delete(): void
     {
-        $loginId = $_GET['login_id'] ?? '';
-        if (empty($loginId)) return;
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) return;
         
-        if ($this->service->deleteTeacher($loginId)) {
+        if ($this->service->deleteTeacher($id)) {
             $base = \App\Core\App::getInstance()->getBasePath();
             header("Location: {$base}index.php?page=teacher_list");
             exit;
@@ -180,18 +189,16 @@ class TeacherController
             exit;
         }
 
-        $loginId = $_POST['login_id'] ?? '';
+        $id = (int)($_POST['id'] ?? 0);
         $mode = $_POST['mode'] ?? 'edit';
 
-        // Extract the same data mapping logic (simplified for AJAX if needed, but keeping consistency)
-        $data = $this->parsePostData($session, $loginId);
+        $data = $this->parsePostData($session, $id);
 
-        if ($mode === 'edit' && !empty($loginId)) {
-            $success = $this->service->updateTeacher($loginId, $data);
+        if ($mode === 'edit' && $id > 0) {
+            $success = $this->service->updateTeacher($id, $data);
             $message = '정보가 실시간으로 반영되었습니다.';
-            $newId = $loginId;
+            $newId = $id;
         } else {
-            $data['bcode'] = (string)$session->get('bcode', '');
             $newId = $this->service->createTeacher($data);
             $success = ($newId !== false);
             $message = $success ? '새로운 교사가 등록되었습니다.' : '등록 중 오류가 발생했습니다.';
@@ -201,26 +208,22 @@ class TeacherController
         echo json_encode([
             'success' => $success, 
             'message' => $message,
-            'login_id' => $newId,
+            'id' => $newId,
             'mode' => 'edit'
         ]);
         exit;
     }
 
-    private function parsePostData($session, $loginId): array
+    private function parsePostData($session, int $id): array
     {
         $data = [
             'name'      => $_POST['name'] ?? '',
             'parish_id' => $_POST['parish_id'] ?? null,
             'bname'     => $_POST['bname'] ?? '',
-            'jumin_f'  => $_POST['jumin_f'] ?? '',
+            'birth_date' => $_POST['jumin_f'] ?? '', // legacy mapping
             'bday'     => $_POST['bday'] ?? '',
             'phone1'   => $_POST['phone1'] ?? '',
-            'phone2'   => $_POST['phone2'] ?? '',
             'email'    => $_POST['email'] ?? '',
-            'postcode' => $_POST['postcode'] ?? '',
-            'addr1'    => $_POST['addr1'] ?? '',
-            'addr2'    => $_POST['addr2'] ?? '',
             'academy'  => $_POST['academy'] ?? '1',
             'type_num' => $_POST['type_num'] ?? '5',
             'ac_edpart02' => $_POST['ac_edpart02'] ?? '',
@@ -229,8 +232,21 @@ class TeacherController
             'current_grade' => $_POST['ac_edsc'] ?? '',
             'cs_year'     => $_POST['cs_year'] ?? '',
             'cs_month'    => $_POST['cs_month'] ?? '',
-            'furloughs' => [], 'education' => [], 'awards' => []
+            'furloughs' => [], 'education' => [], 'awards' => [], 'core_edu' => []
         ];
+
+        // Parse Core Education
+        $coreStages = ['기본교육(구입문과정)', '구심화과정', '양성교육(구전문화과정)'];
+        foreach ($coreStages as $stage) {
+            $key = str_replace(['(', ')'], '', $stage); // Simple key for post data
+            if (isset($_POST['core_year'][$stage])) {
+                $data['core_edu'][$stage] = [
+                    'year' => $_POST['core_year'][$stage] ?? '',
+                    'month' => $_POST['core_month'][$stage] ?? '',
+                    'is_completed' => isset($_POST['core_in'][$stage])
+                ];
+            }
+        }
 
         // Parse Furloughs
         if (isset($_POST['furlough_reason']) && is_array($_POST['furlough_reason'])) {
@@ -279,7 +295,7 @@ class TeacherController
             
             if (in_array($_FILES['photo']['type'], $allowedTypes) && $_FILES['photo']['size'] <= $maxSize) {
                 $ext = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-                $newFileName = 'teacher_' . ($loginId ?: 'new_' . uniqid()) . '_' . time() . '.' . $ext;
+                $newFileName = 'teacher_' . ($id > 0 ? $id : 'new_' . uniqid()) . '_' . time() . '.' . $ext;
                 $uploadDir = __DIR__ . '/../../public/uploads/photos/';
                 
                 if (!is_dir($uploadDir)) {
@@ -303,15 +319,14 @@ class TeacherController
             exit;
         }
 
-        $loginId = $_POST['login_id'] ?? '';
+        $id = (int)($_POST['id'] ?? 0);
         $mode = $_POST['mode'] ?? 'edit';
-        $data = $this->parsePostData($session, $loginId);
+        $data = $this->parsePostData($session, $id);
 
-        if ($mode === 'edit' && !empty($loginId)) {
-            $success = $this->service->updateTeacher($loginId, $data);
+        if ($mode === 'edit' && $id > 0) {
+            $success = $this->service->updateTeacher($id, $data);
             $msg = $success ? '정보가 수정되었습니다.' : '수정 중 오류가 발생했습니다.';
         } else {
-            $data['bcode'] = (string)$session->get('bcode', '');
             $success = $this->service->createTeacher($data);
             $msg = $success ? '새로운 교사가 등록되었습니다.' : '등록 중 오류가 발생했습니다.';
         }
