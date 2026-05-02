@@ -63,6 +63,11 @@ class Migrator {
         $this->db->query("ALTER TABLE users MODIFY COLUMN role ENUM('office', 'casuwon', 'diocese', 'bondang') DEFAULT 'bondang'");
         $this->db->query("UPDATE users SET role = 'casuwon' WHERE role = 'office'");
         $this->db->query("ALTER TABLE users MODIFY COLUMN role ENUM('casuwon', 'diocese', 'bondang') DEFAULT 'bondang'");
+        
+        // Ensure new phone columns exist in users
+        $cols = $this->db->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('org_in_tel', $cols)) $this->db->query("ALTER TABLE users ADD COLUMN org_in_tel VARCHAR(20) AFTER role");
+        if (!in_array('org_out_tel', $cols)) $this->db->query("ALTER TABLE users ADD COLUMN org_out_tel VARCHAR(20) AFTER org_in_tel");
 
         // Create vicariates table
         $this->db->query("CREATE TABLE IF NOT EXISTS vicariates (
@@ -93,6 +98,12 @@ class Migrator {
         if (empty($orgCdCol)) {
             $this->db->query("ALTER TABLE parishes ADD COLUMN org_cd INT DEFAULT NULL AFTER district_id");
             $this->db->query("ALTER TABLE parishes ADD INDEX idx_org_cd (org_cd)");
+        }
+        
+        // Add org_out_tel to parishes if not exists
+        $outTelCol = $this->db->query("SHOW COLUMNS FROM parishes LIKE 'org_out_tel'")->fetchAll();
+        if (empty($outTelCol)) {
+            $this->db->query("ALTER TABLE parishes ADD COLUMN org_out_tel VARCHAR(20) AFTER phone");
         }
         
         // Add USE_YN to ORG_INFO if not exists
@@ -246,14 +257,14 @@ class Migrator {
         // STEP 4: Populate parishes from ORG_INFO (ORG_CD prefix 1311)
         echo "  - Populating parishes from ORG_INFO...\n";
         $parishRows = $this->db->query("
-            SELECT ORG_CD, ORG_NM, UPPR_ORG_CD, ORG_IN_TEL, EMAIL FROM ORG_INFO 
+            SELECT ORG_CD, ORG_NM, UPPR_ORG_CD, ORG_IN_TEL, ORG_OUT_TEL, EMAIL FROM ORG_INFO 
             WHERE ORG_CD LIKE '1311%' ORDER BY ORG_CD
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtParish = $this->db->prepare("
             REPLACE INTO parishes 
-            (org_cd, district_id, parish_name, parish_code, diocese_name, diocese_code, district_name, district_code, phone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (org_cd, district_id, parish_name, parish_code, diocese_name, diocese_code, district_name, district_code, phone, org_out_tel)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($parishRows as $row) {
@@ -288,7 +299,8 @@ class Migrator {
                 $dist['diocese_code'] ?? '',
                 $dist['district_name'] ?? '',
                 $dist['district_code'] ?? '',
-                trim((string)($row['ORG_IN_TEL'] ?? ''))
+                trim((string)($row['ORG_IN_TEL'] ?? '')),
+                trim((string)($row['ORG_OUT_TEL'] ?? ''))
             ]);
         }
 
@@ -317,20 +329,22 @@ class Migrator {
                 $parishId = $p['id'] ?? null;
             }
 
-            $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password_hash, name, role, parish_id) VALUES (?, ?, ?, ?, ?)");
+            $stmt = $this->db->prepare("INSERT IGNORE INTO users (login_id, password_hash, name, role, parish_id, org_in_tel, org_out_tel) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $uid,
                 $row['ctms_upwd'],
                 $row['ctms_uname'],
                 $role,
-                $parishId
+                $parishId,
+                null, // Will be filled from ORG_INFO later if possible
+                null
             ]);
         }
 
         // 2. Ensure critical accounts from legacy files are present even if not in ctms_user_info
         $manualUsers = [
-            ['admin1004', 'casuwon', '전체 관리자', 'casuwon', null],
-            ['youthas', '4..1', '안산대리구 관리자', 'diocese', null]
+            ['admin1004', 'casuwon', '전체 관리자', 'casuwon', null, null, null],
+            ['youthas', '4..1', '안산대리구 관리자', 'diocese', null, null, null]
         ];
 
         foreach ($manualUsers as $user) {
@@ -341,12 +355,13 @@ class Migrator {
         $this->db->query("UPDATE users SET role = 'casuwon' WHERE login_id IN ('jsyang', 'youthet', 'swscout', 'admin1004')");
         $this->db->query("UPDATE users SET role = 'diocese' WHERE login_id IN ('youth-v1', 'youth-v2', 'youthas')");
 
-        // 4. Link users to parishes by matching login_id with parish_code
-        echo "- Linking users to parishes...\n";
+        // 4. Link users to parishes and sync phone numbers
+        echo "- Linking users to parishes and syncing phone numbers...\n";
         $this->db->query("
             UPDATE users u
-            JOIN parishes p ON u.login_id = p.parish_code
-            SET u.parish_id = p.id
+            JOIN parishes p ON u.parish_id = p.id
+            SET u.org_in_tel = p.phone,
+                u.org_out_tel = p.org_out_tel
             WHERE u.role = 'bondang'
         ");
     }

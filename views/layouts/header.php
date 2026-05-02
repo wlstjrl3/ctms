@@ -264,4 +264,39 @@ $currentPage = $_GET['page'] ?? 'dashboard';
             overlay.classList.remove('active');
         });
     });
+
+    // Sticky Top Bar logic for Mobile
+    const mainContent = document.querySelector('.main-content');
+    const topBar = document.querySelector('.top-bar');
+    let lastScrollTop = 0;
+
+    if (topBar) {
+        const handleScroll = (scrollTop) => {
+            if (window.innerWidth > 1024) {
+                topBar.classList.remove('header-hidden');
+                return;
+            }
+            
+            if (scrollTop > lastScrollTop && scrollTop > 80) {
+                // Scrolling Down -> Hide
+                topBar.classList.add('header-hidden');
+            } else if (scrollTop < lastScrollTop) {
+                // Scrolling Up -> Show
+                topBar.classList.remove('header-hidden');
+            }
+            lastScrollTop = scrollTop;
+        };
+
+        // Listen to window scroll (most likely on mobile due to display:block)
+        window.addEventListener('scroll', () => {
+            handleScroll(window.pageYOffset || document.documentElement.scrollTop);
+        }, { passive: true });
+
+        // Also listen to mainContent scroll just in case
+        if (mainContent) {
+            mainContent.addEventListener('scroll', () => {
+                handleScroll(mainContent.scrollTop);
+            }, { passive: true });
+        }
+    }
 </script>

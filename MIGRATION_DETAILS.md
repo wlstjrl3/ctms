@@ -97,3 +97,15 @@
 - **마이그레이션 재실행 시**: 반드시 `php scripts/Migrator.php`를 사용하여 전체 프로세스를 초기화 후 재실행할 것. Migrator는 `ORG_INFO` 및 표준 교육 체계를 기준으로 시스템을 재구축합니다.
 - **BCODE 금지**: 백엔드와 프론트엔드 어디에서도 3자리 BCODE(`parish_code`)를 사용하지 마십시오. 오직 `ORG_CD` 기반으로 로직을 작성해야 합니다.
 - **연락처 매핑**: `bd_member_right` 테이블의 `phone2`가 실제 휴대전화 번호이므로 이관 시 주의가 필요합니다.
+
+---
+
+## 9. 본당 계정 연락처 체계 현대화 (Phase 5)
+
+### 9.1 `phone/fax` -> `org_in_tel/org_out_tel` 변경
+- **문제**: 단순 '전화/팩스' 명칭은 교구 행정 시스템의 '내선/국선' 체계와 일치하지 않으며, 데이터 소스인 `ORG_INFO`와 필드명이 달라 혼선 발생.
+- **해결**: `users` 테이블의 컬럼명을 `org_in_tel`(내선), `org_out_tel`(국선)로 변경하고 UI 레이블을 업데이트함.
+
+### 9.2 Migrator 동기화 및 오류 수정
+- **개선**: `Migrator.php`가 `ORG_INFO`에서 `ORG_OUT_TEL`까지 가져와 `parishes` 및 `users` 테이블에 자동으로 동기화하도록 로직 보완.
+- **오류 수정**: 스키마 변경으로 인한 `manualUsers` 배열의 파라미터 개수 불일치(`PDOException`) 해결.

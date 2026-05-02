@@ -43,8 +43,9 @@ erDiagram
 - `diocese_name`: VARCHAR (대리구명 - 호환용)
 - `district_name`: VARCHAR (지구명 - 호환용)
 - `address_basic`: VARCHAR
-- `phone`: VARCHAR
-- `fax`: VARCHAR
+- `phone`: VARCHAR (내선번호 - ORG_IN_TEL)
+- `org_out_tel`: VARCHAR (국선번호 - ORG_OUT_TEL)
+- `fax`: VARCHAR (팩스번호)
 
 #### 2. `users` (시스템 사용자)
 - `id`: INT PK AI
@@ -53,6 +54,8 @@ erDiagram
 - `password_hash`: VARCHAR (보안 강화)
 - `name`: VARCHAR
 - `role`: ENUM ('casuwon', 'diocese', 'bondang')
+- `org_in_tel`: VARCHAR (내선번호)
+- `org_out_tel`: VARCHAR (국선번호)
 
 ---
 

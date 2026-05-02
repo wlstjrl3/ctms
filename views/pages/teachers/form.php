@@ -288,7 +288,7 @@ function isChecked($val1, $val2) {
 
                 <!-- 핵심 3단계 교육과정 -->
                 <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2.5rem; background: rgba(79, 70, 229, 0.03);">
-                    <div style="display: grid; grid-template-columns: 1fr 120px 100px 100px; gap: 1rem; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--glass-border); margin-bottom: 1rem; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">
+                    <div class="core-edu-grid core-edu-grid-header" style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--glass-border); margin-bottom: 1rem; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">
                         <div>단계</div>
                         <div style="text-align: center;">년도</div>
                         <div style="text-align: center;">월</div>
@@ -296,15 +296,15 @@ function isChecked($val1, $val2) {
                     </div>
                     <?php 
                         $coreStages = [
-                            '기본교육(구입문과정)' => '기본교육(구입문과정)',
-                            '구심화과정' => '구심화과정',
-                            '양성교육(구전문화과정)' => '양성교육(구전문화과정)'
+                            '기본교육(구입문과정)' => '기본교육',
+                            '구심화과정' => '심화과정',
+                            '양성교육(구전문화과정)' => '양성교육'
                         ];
                         $coreEdu = $teacher['core_edu'] ?? [];
                         foreach ($coreStages as $stageName => $displayName):
                             $edu = $coreEdu[$stageName] ?? ['year' => '', 'month' => '', 'is_completed' => false];
                     ?>
-                    <div style="display: grid; grid-template-columns: 1fr 120px 100px 100px; gap: 1rem; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div class="core-edu-grid" style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
                         <div style="font-weight: 600; color: var(--text-main);"><?= $displayName ?></div>
                         <div style="position: relative;">
                             <input type="text" name="core_year[<?= $stageName ?>]" value="<?= htmlspecialchars($edu['year']) ?>" placeholder="YYYY" style="text-align: center; padding-right: 1.5rem;">
@@ -338,7 +338,7 @@ function isChecked($val1, $val2) {
                         $eduDetails = $teacher['edu_details'] ?? [];
                         foreach ($eduDetails as $idx => $edu): 
                     ?>
-                    <div class="edu-item glass-card" style="padding: 1rem; align-items: center; display: grid; grid-template-columns: 1fr 180px 40px; gap: 1.5rem;">
+                    <div class="edu-item glass-card edu-grid-row" style="padding: 1rem;">
                         <div class="form-group" style="margin: 0;">
                             <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.5rem;">
                                 <input type="text" id="edu_name_<?= $idx ?>" value="<?= htmlspecialchars($edu['edu_title'] ?? '') ?>" readonly placeholder="교육 과목을 선택하세요" style="background: var(--bg-dark); cursor: default;">
@@ -460,8 +460,8 @@ function isChecked($val1, $val2) {
     function addEducation() {
         const container = document.getElementById('education-container');
         const div = document.createElement('div');
-        div.className = 'edu-item glass-card';
-        div.style.cssText = 'padding: 1rem; align-items: center; gap: 1rem; display: grid; grid-template-columns: 1fr 180px 40px; gap: 1.5rem;';
+        div.className = 'edu-item glass-card edu-grid-row';
+        div.style.cssText = 'padding: 1rem;';
         
         div.innerHTML = `
             <div class="form-group" style="margin: 0;">
@@ -529,13 +529,21 @@ function initAutoSave() {
     // Standard inputs
     document.querySelectorAll('input, select, textarea').forEach(el => {
         if (!el.name || ['id', 'mode', 'photo'].includes(el.name)) return;
+        if (el.getAttribute('data-autosave-bound')) return;
+        el.setAttribute('data-autosave-bound', 'true');
         
         // Handle dynamic arrays (furlough, awards, edu)
         if (el.name.includes('[]')) {
-            el.addEventListener('change', () => {
-                showAutoSaveStatus('변경 중...');
-                performAjaxSave().then(success => {
-                    if (success) showAutoSaveStatus('목록 업데이트됨');
+            const arrayEvents = el.type === 'text' ? ['change', 'blur'] : ['change'];
+            arrayEvents.forEach(evt => {
+                el.addEventListener(evt, () => {
+                    if (el.type === 'text' && el.value === el.getAttribute('data-last-save')) return;
+                    el.setAttribute('data-last-save', el.value);
+                    
+                    showAutoSaveStatus('변경 중...');
+                    performAjaxSave().then(success => {
+                        if (success) showAutoSaveStatus('목록 업데이트됨');
+                    });
                 });
             });
             return;

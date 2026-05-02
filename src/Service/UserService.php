@@ -123,8 +123,8 @@ class UserService
         $parish = $this->db->fetch("SELECT id FROM parishes WHERE org_cd = ?", [(int)($data['org_cd'] ?? 0)]);
         $parishId = $parish['id'] ?? null;
 
-        $fields = ["login_id = ?", "name = ?", "parish_id = ?", "role = ?", "phone = ?", "fax = ?"];
-        $params = [$data['login_id'], $data['name'], $parishId, $data['role'], $data['phone'] ?? null, $data['fax'] ?? null];
+        $fields = ["login_id = ?", "name = ?", "parish_id = ?", "role = ?", "org_in_tel = ?", "org_out_tel = ?"];
+        $params = [$data['login_id'], $data['name'], $parishId, $data['role'], $data['org_in_tel'] ?? null, $data['org_out_tel'] ?? null];
 
         if (!empty($data['password'])) {
             $fields[] = "password_hash = ?";
@@ -146,7 +146,7 @@ class UserService
         $parishId = $parish['id'] ?? null;
 
         $sql = "INSERT INTO users 
-                (login_id, name, parish_id, role, password_hash, phone, fax, created_at)
+                (login_id, name, parish_id, role, password_hash, org_in_tel, org_out_tel, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
         
         return (bool)$this->db->query($sql, [
@@ -155,8 +155,8 @@ class UserService
             $parishId, 
             $data['role'], 
             password_hash($data['password'], PASSWORD_DEFAULT),
-            $data['phone'] ?? null,
-            $data['fax'] ?? null
+            $data['org_in_tel'] ?? null,
+            $data['org_out_tel'] ?? null
         ]);
     }
 

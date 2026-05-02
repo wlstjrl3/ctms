@@ -92,8 +92,8 @@ class UserController
             'password' => $_POST['password'] ?? '',
             'name'     => $_POST['name'] ?? '',
             'org_cd'   => $_POST['org_cd'] ?? '',   // parish ORG_CD (e.g. 13110004)
-            'phone'    => $_POST['phone'] ?? '',
-            'fax'      => $_POST['fax'] ?? '',
+            'org_in_tel'  => $_POST['org_in_tel'] ?? '',
+            'org_out_tel' => $_POST['org_out_tel'] ?? '',
             'role'     => $_POST['role'] ?? 'bondang',
         ];
 

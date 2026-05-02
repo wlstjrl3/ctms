@@ -60,7 +60,7 @@ class TeacherService
             }
 
             // 5. Update Awards
-            $this->updateAwards($loginId, $data['awards'] ?? []);
+            $this->updateAwards($teacherId, $data['awards'] ?? []);
 
             // 6. Update Education Records
             $this->db->query("DELETE FROM education_records WHERE teacher_id = ?", [$teacherId]);
@@ -148,9 +148,25 @@ class TeacherService
             }
             if (isset($data['education']) && is_array($data['education'])) {
                 foreach ($data['education'] as $edu) {
-                    $this->db->query("INSERT INTO education_records (teacher_id, course_id, completion_date, status) VALUES (?, 1, ?, 'Completed')", [
-                        $teacherId, $edu['date']
-                    ]);
+                    if (!empty($edu['course_id'])) {
+                        $this->db->query("INSERT INTO education_records (teacher_id, course_id, completion_date, status) VALUES (?, ?, ?, 'Completed')", [
+                            $teacherId, $edu['course_id'], $edu['date']
+                        ]);
+                    }
+                }
+            }
+
+            // Add missing Awards and Core Education for creation
+            $this->updateAwards($teacherId, $data['awards'] ?? []);
+            if (isset($data['core_edu']) && is_array($data['core_edu'])) {
+                foreach ($data['core_edu'] as $courseName => $edu) {
+                    $course = $this->db->fetch("SELECT id FROM education_courses WHERE course_name = ?", [$courseName]);
+                    if ($course && !empty($edu['is_completed'])) {
+                        $month = !empty($edu['month']) ? str_pad((string)$edu['month'], 2, '0', STR_PAD_LEFT) : '01';
+                        $date = "{$edu['year']}-{$month}-01";
+                        $this->db->query("INSERT INTO education_records (teacher_id, course_id, completion_date, status) VALUES (?, ?, ?, 'Completed')", 
+                            [$teacherId, $course['id'], $date]);
+                    }
                 }
             }
 

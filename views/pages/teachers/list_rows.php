@@ -8,7 +8,7 @@
     <td style="padding: 1rem;">
         <div style="font-weight: 600;"><?= htmlspecialchars($t['name']) ?> (<?= htmlspecialchars($t['baptismal_name']) ?>)</div>
         <div style="font-size: 0.75rem; color: var(--text-muted);">
-            #<?= $t['id'] ?> | <?= $age ?>세 | <?= $t['birth_date'] ?>
+            <?= $age ?>세 | <?= $t['birth_date'] ?>
         </div>
     </td>
     <td style="padding: 1rem;">
@@ -29,7 +29,7 @@
         <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($t['position'] ?: '교사') ?></div>
     </td>
     <td style="padding: 1rem; text-align: center;">
-        <div style="display: flex; gap: 4px; justify-content: center;">
+        <div class="core-edu-badges">
             <?php 
                 $coreMap = [
                     '기본교육(구입문과정)' => ['short' => '기본', 'color' => '#4F46E5'],
@@ -54,7 +54,7 @@
             ];
             $s = $statusMap[$t['status']] ?? ['text' => $t['status'], 'color' => 'var(--text-muted)'];
         ?>
-        <span style="font-size: 0.75rem; color: <?= $s['color'] ?>; background: <?= $s['color'] ?>15; padding: 4px 8px; border-radius: 12px; font-weight: 600;">
+        <span style="font-size: 0.75rem; color: <?= $s['color'] ?>; background: <?= $s['color'] ?>15; padding: 4px 8px; border-radius: 12px; font-weight: 600; white-space: nowrap;">
             <?= $s['text'] ?>
         </span>
     </td>
