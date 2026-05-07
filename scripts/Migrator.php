@@ -52,6 +52,7 @@ class Migrator {
         $this->migrateAwards();
         $this->migrateAcademyStages();
         $this->consolidateCourses();
+        $this->cleanupParishes();
         
         echo "Migration Finished Successfully.\n";
     }
@@ -768,6 +769,47 @@ class Migrator {
         if (in_array($noSpace, ['코로나시기지도방법', '코로나시대지도방법'])) return '코로나시대지도방법';
 
         return $name;
+    }
+
+    /**
+     * Post-migration cleanup to merge duplicates and fix broken links
+     */
+    private function cleanupParishes() {
+        echo "- Final Cleanup: Merging duplicates and fixing links...\n";
+        $stmt = $this->db->query("SELECT id, parish_name, parish_code, org_cd FROM parishes");
+        $parishes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $nameGroups = [];
+        foreach ($parishes as $p) {
+            $name = str_replace('성당', '', $p['parish_name']);
+            $nameGroups[$name][] = $p;
+        }
+
+        foreach ($nameGroups as $name => $members) {
+            if (count($members) > 1) {
+                // Prioritize records with numeric codes and 8-digit org_cds
+                usort($members, function($a, $b) {
+                    $aSer = (is_numeric($a['parish_code'])) ? 1000 : 0;
+                    $bSer = (is_numeric($b['parish_code'])) ? 1000 : 0;
+                    $aOrg = (strlen((string)$a['org_cd']) >= 8) ? 100 : 0;
+                    $bOrg = (strlen((string)$b['org_cd']) >= 8) ? 100 : 0;
+                    return ($bSer + $bOrg + $b['id']) - ($aSer + $aOrg + $a['id']);
+                });
+
+                $winner = $members[0];
+                for ($i = 1; $i < count($members); $i++) {
+                    $loser = $members[$i];
+                    // Move teachers/users
+                    $this->db->prepare("UPDATE teachers SET parish_id = ? WHERE parish_id = ?")->execute([$winner['id'], $loser['id']]);
+                    $this->db->prepare("UPDATE users SET parish_id = ? WHERE parish_id = ?")->execute([$winner['id'], $loser['id']]);
+                    // Delete duplicate
+                    $this->db->prepare("DELETE FROM parishes WHERE id = ?")->execute([$loser['id']]);
+                    if ($loser['org_cd'] != $winner['org_cd']) {
+                        $this->db->prepare("DELETE FROM ORG_INFO WHERE ORG_CD = ?")->execute([$loser['org_cd']]);
+                    }
+                }
+            }
+        }
     }
 
     private function normalizeCourseName($name) {
