@@ -112,12 +112,13 @@ class ParishService
      * Get all vicariates (대리구) from ORG_INFO.
      * Returns id=ORG_CD (string), GYOGU=name, GCODE=ORG_CD
      */
-    public function getDioceses(): array
+    public function getDioceses(bool $includeInactive = false): array
     {
+        $useYnFilter = $includeInactive ? "" : "AND USE_YN = 'Y'";
         // Use ORG_CD as ID for consistency with ORG_INFO focus
         $sql = "SELECT ORG_CD as id, ORG_NM as GYOGU, ORG_CD as GCODE 
                 FROM ORG_INFO 
-                WHERE ORG_CD LIKE '1306%' AND USE_YN = 'Y'
+                WHERE ORG_CD LIKE '1306%' {$useYnFilter}
                 ORDER BY ORG_CD ASC";
         return $this->db->fetchAll($sql);
     }
@@ -126,10 +127,11 @@ class ParishService
      * Get all districts (지구) from ORG_INFO, optionally filtered by vicariate ORG_CD.
      * Returns id=ORG_CD, JIGU=name, JCODE=ORG_CD, vicariate_id=UPPR_ORG_CD
      */
-    public function getDistricts(?int $vicariateId = null): array
+    public function getDistricts(?int $vicariateId = null, bool $includeInactive = false): array
     {
         $where = $vicariateId ? "AND dist.UPPR_ORG_CD = ?" : "";
         $params = $vicariateId ? [$vicariateId] : [];
+        $useYnFilter = $includeInactive ? "" : "AND dist.USE_YN = 'Y'";
 
         $sql = "SELECT 
                     dist.ORG_CD as id, 
@@ -140,13 +142,7 @@ class ParishService
                     vic.ORG_NM as GYOGU
                 FROM ORG_INFO dist
                 LEFT JOIN ORG_INFO vic ON dist.UPPR_ORG_CD = vic.ORG_CD
-                WHERE dist.ORG_CD LIKE '1309%' AND dist.USE_YN = 'Y' 
-                AND EXISTS (
-                    SELECT 1 FROM ORG_INFO p 
-                    WHERE p.UPPR_ORG_CD = dist.ORG_CD 
-                    AND p.ORG_CD LIKE '1311%' 
-                    AND p.USE_YN = 'Y'
-                )
+                WHERE dist.ORG_CD LIKE '1309%' {$useYnFilter}
                 {$where}
                 ORDER BY dist.ORG_CD ASC";
         return $this->db->fetchAll($sql, $params);
@@ -335,12 +331,16 @@ class ParishService
 
     public function createDistrict(array $data): bool
     {
-        $vic    = $this->db->fetch("SELECT code FROM vicariates WHERE id = ?", [(int)$data['vicariate_id']]);
-        $upprCd = $vic ? (int)$vic['code'] : 0;
+        // $data['vicariate_id'] is ORG_CD (e.g. 13061001)
+        $vicOrgCd = (int)$data['vicariate_id'];
         $maxRow = $this->db->fetch("SELECT MAX(ORG_CD) as max_cd FROM ORG_INFO WHERE ORG_CD LIKE '1309%'");
         $nextCd = ($maxRow['max_cd'] ?? 13090000) + 1;
-        $this->db->query("INSERT INTO ORG_INFO (ORG_CD, ORG_NM, UPPR_ORG_CD, ORG_TYPE, USE_YN, REG_DT) VALUES (?, ?, ?, 9, 'Y', NOW())", [$nextCd, $data['name'], $upprCd]);
-        return (bool)$this->db->query("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)", [$data['vicariate_id'], $data['name'], (string)$nextCd]);
+        
+        $this->db->query("INSERT INTO ORG_INFO (ORG_CD, ORG_NM, UPPR_ORG_CD, ORG_TYPE, USE_YN, REG_DT) VALUES (?, ?, ?, 9, 'Y', NOW())", [$nextCd, $data['name'], $vicOrgCd]);
+        
+        // Find internal ID for districts table relation
+        $vic = $this->db->fetch("SELECT id FROM vicariates WHERE code = ?", [(string)$vicOrgCd]);
+        return (bool)$this->db->query("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)", [$vic['id'] ?? 0, $data['name'], (string)$nextCd]);
     }
 
     public function updateDistrict(int $orgCd, array $data): bool

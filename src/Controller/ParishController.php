@@ -37,8 +37,8 @@ class ParishController
         $totalCount = $this->service->getParishCount($filters);
         $pageCount = (int)ceil($totalCount / $pageSize);
 
-        $dioceses = $this->service->getDioceses();
-        $districts = $this->service->getDistricts(); // Get all districts for filter options
+        $dioceses = $this->service->getDioceses(true);
+        $districts = $this->service->getDistricts(null, true); // Get all districts for filter options and management tab
         
         $title = '조직 코드 관리';
 
@@ -54,8 +54,8 @@ class ParishController
         $mode = 'create';
         $title = '신규 본당 등록';
         $parish = [];
-        $dioceses = $this->service->getDioceses();
-        $allDistricts = $this->service->getDistricts(); // For JS dynamic matching
+        $dioceses = $this->service->getDioceses(true);
+        $allDistricts = $this->service->getDistricts(null, true); // For JS dynamic matching
 
         require __DIR__ . '/../../views/layouts/header.php';
         require __DIR__ . '/../../views/pages/parish/form.php';
@@ -76,8 +76,8 @@ class ParishController
 
         $mode = 'edit';
         $title = '본당 정보 수정';
-        $dioceses = $this->service->getDioceses();
-        $allDistricts = $this->service->getDistricts();
+        $dioceses = $this->service->getDioceses(true);
+        $allDistricts = $this->service->getDistricts(null, true);
 
         require __DIR__ . '/../../views/layouts/header.php';
         require __DIR__ . '/../../views/pages/parish/form.php';
