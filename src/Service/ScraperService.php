@@ -188,6 +188,14 @@ class ScraperService
                 $parish = $this->db->fetch("SELECT * FROM parishes WHERE parish_code = ?", [$pSerial]);
                 
                 if ($parish) {
+                    // SELF-HEALING: Check if there's ANOTHER record with the same name (legacy duplicate)
+                    $duplicates = $this->db->fetchAll("SELECT * FROM parishes WHERE (parish_name = ? OR parish_name = ?) AND id != ?", [$pName, $pName . '성당', $parish['id']]);
+                    foreach ($duplicates as $dup) {
+                        // Merge logic: in this simple case, just delete the duplicate since ID $parish['id'] is already mapped correctly
+                        $this->db->query("DELETE FROM parishes WHERE id = ?", [$dup['id']]);
+                        $this->db->query("DELETE FROM ORG_INFO WHERE ORG_CD = ?", [$dup['org_cd']]);
+                    }
+
                     // Update if name changed or if it moved to a different district
                     if ($parish['parish_name'] !== $pName || (int)$parish['district_id'] !== (int)$distId) {
                         $this->db->query("UPDATE parishes SET parish_name = ?, district_id = ?, district_code = ? WHERE id = ?", 
@@ -213,6 +221,13 @@ class ScraperService
                             [$distOrgCd, $parishByName['org_cd']]);
                         
                         $stats['updated']++;
+
+                        // SELF-HEALING: Double check if we still have duplicates after updating this one
+                        $extraDups = $this->db->fetchAll("SELECT * FROM parishes WHERE (parish_name = ? OR parish_name = ?) AND id != ?", [$pName, $pName . '성당', $parishByName['id']]);
+                        foreach ($extraDups as $dup) {
+                            $this->db->query("DELETE FROM parishes WHERE id = ?", [$dup['id']]);
+                            $this->db->query("DELETE FROM ORG_INFO WHERE ORG_CD = ?", [$dup['org_cd']]);
+                        }
                     } else {
                         // 3. Create new parish
                         $last = $this->db->fetch("SELECT MAX(CAST(ORG_CD AS UNSIGNED)) as m FROM ORG_INFO WHERE ORG_CD LIKE '1311%'");

@@ -11,9 +11,9 @@
 $base = \App\Core\App::getInstance()->getBasePath();
 ?>
 
-<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 0.5rem;" class="m-hide">
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 0.5rem; flex-wrap: wrap;" class="top-actions">
     <button id="top-action-btn" class="btn btn-primary" onclick="showOrgModal('parish')">➕ 신규 본당 등록</button>
-    <a href="<?= $base ?>index.php?action=sync_parishes" class="btn" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; text-decoration: none; display: flex; align-items: center;" onclick="return confirm('수원교구 홈페이지에서 최신 정보를 가져오시겠습니까?')">🔄 교구 정보 동기화</a>
+    <a href="<?= $base ?>index.php?action=sync_parishes" class="btn" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; text-decoration: none; display: flex; align-items: center; white-space: nowrap;" onclick="return confirm('수원교구 홈페이지에서 최신 정보를 가져오시겠습니까?')">🔄 교구 정보 동기화</a>
 </div>
 
 <div class="tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
