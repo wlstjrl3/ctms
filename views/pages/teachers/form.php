@@ -45,9 +45,15 @@ function isChecked($val1, $val2) {
                 
                 <div style="margin-top: 2rem; text-align: left; font-size: 0.875rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted);">본당</span> 
+                        <span style="color: var(--text-main); font-weight: 600;">
+                            <?= htmlspecialchars($teacher['parish_name'] ?? '-') ?>
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
                         <span style="color: var(--text-muted);">부서</span> 
                         <span style="color: var(--primary); font-weight: 600;">
-                            <?= ['1'=>'초등', '2'=>'중고', '5'=>'초·중고', '3'=>'대건', '4'=>'장애'][$teacher['department'] ?? ''] ?? '-' ?>
+                            <?= ['elementary'=>'초등', 'middle_high'=>'중고', 'daegun'=>'대건', 'disabled'=>'장애', 'integrated'=>'통합'][$teacher['department'] ?? ''] ?? '-' ?>
                         </span>
                     </div>
                     <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between;">

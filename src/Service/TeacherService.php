@@ -201,7 +201,7 @@ class TeacherService
 
     public function getTeacher(int $id): ?array
     {
-        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.org_cd
+        $sql = "SELECT t.*, tt.start_year as cs_year, tt.start_month as cs_month, p.org_cd, p.parish_name
                 FROM teachers t
                 LEFT JOIN teacher_tenure tt ON t.id = tt.teacher_id
                 LEFT JOIN parishes p ON t.parish_id = p.id
