@@ -18,6 +18,9 @@ class ScraperService
 
     public function syncFromDiocese(): array
     {
+        set_time_limit(0);
+        $this->preSyncCleanup(); // Auto-fix duplicates and broken links before sync
+
         $urls = [
             '제1대리구' => 'https://www.casuwon.or.kr/parish/parish/1?parish=%EC%A0%9C1%EB%8C%80%EB%A6%AC%EA%B5%AC',
             '제2대리구' => 'https://www.casuwon.or.kr/parish/parish/1?parish=%EC%A0%9C2%EB%8C%80%EB%A6%AC%EA%B5%AC'
@@ -47,6 +50,50 @@ class ScraperService
         }
 
         return $stats;
+    }
+
+    /**
+     * Self-healing logic to fix duplicates and broken internal table links before sync
+     */
+    private function preSyncCleanup(): void {
+        // 1. Remove Duplicate Districts/Parishes in ORG_INFO
+        $this->db->query("DELETE o1 FROM ORG_INFO o1 INNER JOIN ORG_INFO o2 
+                         WHERE o1.ORG_CD LIKE '1309%' AND o1.ORG_CD > o2.ORG_CD AND o1.ORG_NM = o2.ORG_NM");
+        
+        $this->db->query("DELETE o1 FROM ORG_INFO o1 INNER JOIN ORG_INFO o2 
+                         WHERE o1.ORG_CD LIKE '1311%' AND o1.ORG_CD > o2.ORG_CD AND o1.ORG_NM = o2.ORG_NM AND o1.UPPR_ORG_CD = o2.UPPR_ORG_CD");
+
+        // 2. Re-sync Internal Reference Tables (vicariates, districts) from ORG_INFO
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 0");
+        $this->db->query("TRUNCATE TABLE vicariates");
+        $this->db->query("TRUNCATE TABLE districts");
+        $this->db->query("SET FOREIGN_KEY_CHECKS = 1");
+
+        $vics = $this->db->fetchAll("SELECT ORG_CD, ORG_NM FROM ORG_INFO WHERE ORG_CD LIKE '1306%'");
+        foreach ($vics as $v) {
+            $this->db->query("INSERT INTO vicariates (name, code) VALUES (?, ?)", [$v['ORG_NM'], (string)$v['ORG_CD']]);
+        }
+
+        $dists = $this->db->fetchAll("SELECT ORG_CD, ORG_NM, UPPR_ORG_CD FROM ORG_INFO WHERE ORG_CD LIKE '1309%'");
+        foreach ($dists as $d) {
+            $vic = $this->db->fetch("SELECT id FROM vicariates WHERE code = ?", [(string)$d['UPPR_ORG_CD']]);
+            $this->db->query("INSERT INTO districts (vicariate_id, name, code) VALUES (?, ?, ?)", [$vic['id'] ?? 0, $d['ORG_NM'], (string)$d['ORG_CD']]);
+        }
+        
+        // 3. Fix broken parish -> district links in ORG_INFO by matching district name if possible
+        $aliveDists = $this->db->fetchAll("SELECT ORG_CD, ORG_NM FROM ORG_INFO WHERE ORG_CD LIKE '1309%'");
+        $distNameMap = [];
+        foreach ($aliveDists as $ad) {
+            $distNameMap[trim($ad['ORG_NM'])] = $ad['ORG_CD'];
+        }
+
+        $parishesToFix = $this->db->fetchAll("SELECT p.org_cd, p.district_name FROM parishes p");
+        foreach ($parishesToFix as $pf) {
+            $correctDistCd = $distNameMap[trim($pf['district_name'])] ?? null;
+            if ($correctDistCd) {
+                $this->db->query("UPDATE ORG_INFO SET UPPR_ORG_CD = ? WHERE ORG_CD = ?", [$correctDistCd, $pf['org_cd']]);
+            }
+        }
     }
 
     private function fetchUrl(string $url): ?string
