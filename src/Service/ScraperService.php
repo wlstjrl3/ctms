@@ -200,12 +200,18 @@ class ScraperService
                         $stats['updated']++;
                     }
                 } else {
-                    // 2. Fallback: try to match by name in this district (if no serial match)
-                    $parishByName = $this->db->fetch("SELECT * FROM parishes WHERE parish_name = ? AND district_id = ?", [$pName, $distId]);
+                    // 2. Fallback: try to match by name (if no serial match) - global search to catch district moves
+                    $parishByName = $this->db->fetch("SELECT * FROM parishes WHERE parish_name = ? OR parish_name = ?", [$pName, $pName . '성당']);
                     
                     if ($parishByName) {
-                        // Found by name, let's just update its code to the new serial
-                        $this->db->query("UPDATE parishes SET parish_code = ? WHERE id = ?", [$pSerial, $parishByName['id']]);
+                        // Found by name, update its code and move it to the correct district
+                        $this->db->query("UPDATE parishes SET parish_code = ?, district_id = ?, district_code = ? WHERE id = ?", 
+                            [$pSerial, $distId, (string)$distOrgCd, $parishByName['id']]);
+                        
+                        // Also update ORG_INFO parent
+                        $this->db->query("UPDATE ORG_INFO SET UPPR_ORG_CD = ? WHERE ORG_CD = ?", 
+                            [$distOrgCd, $parishByName['org_cd']]);
+                        
                         $stats['updated']++;
                     } else {
                         // 3. Create new parish
