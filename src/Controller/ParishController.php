@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Core\App;
 use App\Service\ParishService;
+use App\Service\ScraperService;
 
 class ParishController
 {
@@ -129,14 +130,14 @@ class ParishController
         $data = ['name' => $_POST['name'], 'code' => $_POST['code']];
         if ($id > 0) $this->service->updateVicariate($id, $data);
         else $this->service->createVicariate($data);
-        header('Location: index.php?page=parish_list&msg=success');
+        header('Location: index.php?page=parish_list&tab=vicariate&msg=success');
     }
 
     public function deleteVicariate(): void {
         $this->checkPermission();
         $id = (int)($_GET['id'] ?? 0);
         $this->service->deleteVicariate($id);
-        header('Location: index.php?page=parish_list&msg=deleted');
+        header('Location: index.php?page=parish_list&tab=vicariate&msg=deleted');
     }
 
     public function saveDistrict(): void {
@@ -150,14 +151,21 @@ class ParishController
         ];
         if ($id > 0) $this->service->updateDistrict($id, $data);
         else $this->service->createDistrict($data);
-        header('Location: index.php?page=parish_list&msg=success');
+        header('Location: index.php?page=parish_list&tab=district&msg=success');
     }
 
     public function deleteDistrict(): void {
         $this->checkPermission();
         $id = (int)($_GET['id'] ?? 0);
         $this->service->deleteDistrict($id);
-        header('Location: index.php?page=parish_list&msg=deleted');
+        header('Location: index.php?page=parish_list&tab=district&msg=deleted');
+    }
+
+    public function syncParishes(): void {
+        $this->checkPermission();
+        $scraper = new ScraperService();
+        $stats = $scraper->syncFromDiocese();
+        header('Location: index.php?page=parish_list&msg=synced&p_count=' . $stats['parishes']);
     }
 
     public function ajaxList(): void

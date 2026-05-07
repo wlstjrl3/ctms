@@ -38,6 +38,11 @@
 *   **본당 계정 관리 고도화**:
     *   **연락처 체계 변경**: `phone/fax`를 `org_in_tel(내선)` / `org_out_tel(국선)`으로 전면 개편.
     *   **입력 검증**: 본당 계정 등록 시 `ORG_CD` 8자리(1311...) 형식 검증 로직 추가.
+*   **본당/조직 자동 동기화 (Scraper)**: 
+    *   `ScraperService.php`: 수원교구 홈페이지(`casuwon.or.kr`)에서 제1/제2대리구 산하 지구 및 본당 정보를 실시간으로 추출하여 시스템에 반영하는 기능을 구현했습니다.
+    *   **고유 식별자 연동**: 홈페이지의 `serial` 값을 `parish_code`로 매핑하여, 본당 명칭이 변경되거나 소속 지구가 바뀌어도 데이터를 자동으로 추적 및 업데이트합니다.
+    *   **Tab Persistence**: 본당 관리 페이지의 탭 상태를 URL 파라미터(`tab=district` 등)로 관리하여 작업 연속성을 확보했습니다.
+    *   **시각적 구분**: `USE_YN='N'`인 미사용 본당 및 지구를 목록에서 흐릿하게 표시하고 전용 라벨을 추가하여 관리 편의성을 높였습니다.
 
 ### [Education & Schedule Management]
 *   **표준 교육 과정 통합**: 파편화된 교육 데이터를 `education_courses` 테이블로 정규화하고, `course_id` 기반의 관계형 구조로 전환했습니다.
@@ -48,7 +53,7 @@
 
 ## 2. 레거시(ctmsOLD) 대비 마이그레이션 현황
 
-| **조직 체계 (ORG_INFO)** | ✅ 완료 | `ParishService`, `Migrator.php` | 레거시 bcode 전면 폐기, ORG_CD(1311...) 통합 |
+| **조직 체계 (ORG_INFO)** | ✅ 완료 | `ParishService`, `ScraperService` | 홈페이지 실시간 동기화 지원, ORG_CD(1311...) 통합 |
 | **교사 ID 컬럼 완전 폐기** | ✅ 완료 | `TeacherService`, `Migrator.php` | 불필요한 `login_id` 제거, 정수형 `id` PK 직접 사용 |
 | **실시간 교사 검색** | ✅ 완료 | `TeacherController::ajaxList` | 다중 필터 지원, N+1 쿼리 최적화(교육 데이터 배치 로드) |
 | **교육/상태 시각화** | ✅ 완료 | `list_rows.php`, `form.php` | 3단계 필수 교육 배지 및 재직 상태 라벨 적용 |

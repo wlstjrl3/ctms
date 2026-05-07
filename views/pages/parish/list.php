@@ -11,16 +11,23 @@
 $base = \App\Core\App::getInstance()->getBasePath();
 ?>
 
-<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;" class="m-hide">
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 0.5rem;" class="m-hide">
     <button id="top-action-btn" class="btn btn-primary" onclick="showOrgModal('parish')">➕ 신규 본당 등록</button>
+    <a href="<?= $base ?>index.php?action=sync_parishes" class="btn" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; text-decoration: none; display: flex; align-items: center;" onclick="return confirm('수원교구 홈페이지에서 최신 정보를 가져오시겠습니까?')">🔄 교구 정보 동기화</a>
 </div>
 
-<!-- Tabs -->
 <div class="tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
     <button class="tab-btn active" data-tab="parish" onclick="showTab('parish')">본당 관리</button>
     <button class="tab-btn" data-tab="district" onclick="showTab('district')">지구 관리</button>
     <button class="tab-btn" data-tab="vicariate" onclick="showTab('vicariate')">대리구 관리</button>
 </div>
+
+<?php if (isset($_GET['msg']) && $_GET['msg'] === 'synced'): ?>
+<div class="glass-card" style="padding: 1rem; margin-bottom: 2rem; border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.05);">
+    <div style="font-weight: 600; color: #10b981;">✅ 동기화 완료</div>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">교구 홈페이지의 최신 조직 정보(본당 <?= $_GET['p_count'] ?? 0 ?>개)가 시스템에 반영되었습니다.</div>
+</div>
+<?php endif; ?>
 
 <!-- Parish Tab -->
 <div id="tab-parish" class="tab-content">
@@ -115,10 +122,17 @@ $base = \App\Core\App::getInstance()->getBasePath();
                 </tr>
             </thead>
             <tbody id="district-list-body">
-                <?php foreach ($districts as $d): ?>
-                <tr class="clickable-row district-row" data-vic="<?= $d['vicariate_id'] ?>" data-name="<?= htmlspecialchars($d['JIGU']) ?>" data-code="<?= $d['JCODE'] ?>" data-use-yn="<?= $d['USE_YN'] ?>" onclick="editDistrict(<?= htmlspecialchars(json_encode($d, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)" style="border-bottom: 1px solid var(--glass-border);">
+                <?php foreach ($districts as $d): 
+                    $isInactive = ($d['USE_YN'] ?? 'Y') === 'N';
+                ?>
+                <tr class="clickable-row district-row" data-vic="<?= $d['vicariate_id'] ?>" data-name="<?= htmlspecialchars($d['JIGU']) ?>" data-code="<?= $d['JCODE'] ?>" data-use-yn="<?= $d['USE_YN'] ?>" onclick="editDistrict(<?= htmlspecialchars(json_encode($d, JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)" style="border-bottom: 1px solid var(--glass-border); <?= $isInactive ? 'opacity: 0.5; filter: grayscale(0.5);' : '' ?>">
                     <td style="padding: 1rem;"><?= htmlspecialchars($d['GYOGU'] ?? '') ?></td>
-                    <td style="padding: 1rem; font-weight: 600;"><?= htmlspecialchars($d['JIGU']) ?></td>
+                    <td style="padding: 1rem; font-weight: 600;">
+                        <?= htmlspecialchars($d['JIGU']) ?>
+                        <?php if($isInactive): ?>
+                            <span style="font-size: 0.7rem; font-weight: normal; color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 2px 6px; border-radius: 4px; margin-left: 5px;">미사용</span>
+                        <?php endif; ?>
+                    </td>
                     <td style="padding: 1rem; font-family: monospace; color: var(--primary);"><?= $d['JCODE'] ?></td>
                 </tr>
                 <?php endforeach; ?>
@@ -421,4 +435,9 @@ $base = \App\Core\App::getInstance()->getBasePath();
             input.addEventListener('change', debouncedFetch);
         }
     });
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || 'parish';
+        showTab(activeTab);
+    };
 </script>

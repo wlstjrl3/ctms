@@ -43,7 +43,7 @@ class ParishService
 
         $sql = "SELECT 
                     p.id, p.parish_code, p.org_cd, p.phone,
-                    o.ORG_NM as parish_name, o.ORG_CD as org_code,
+                    o.ORG_NM as parish_name, o.ORG_CD as org_code, o.USE_YN,
                     dist.ORG_NM as district_name, dist.ORG_CD as district_code,
                     vic.ORG_NM as diocese_name, vic.ORG_CD as diocese_code
                 FROM ORG_INFO o
@@ -97,7 +97,7 @@ class ParishService
     {
         $sql = "SELECT 
                     p.id, p.parish_code, p.org_cd, p.phone,
-                    o.ORG_NM as parish_name, o.ORG_CD as org_code,
+                    o.ORG_NM as parish_name, o.ORG_CD as org_code, o.USE_YN,
                     dist.ORG_NM as district_name, dist.ORG_CD as district_code,
                     vic.ORG_NM as diocese_name, vic.ORG_CD as diocese_code
                 FROM parishes p

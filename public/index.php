@@ -58,6 +58,8 @@ if ($action === 'login') {
     (new \App\Controller\ParishController())->saveDistrict();
 } elseif ($action === 'delete_district') {
     (new \App\Controller\ParishController())->deleteDistrict();
+} elseif ($action === 'sync_parishes') {
+    (new \App\Controller\ParishController())->syncParishes();
 } elseif ($action === 'ajax_teachers') {
     (new \App\Controller\TeacherController())->ajaxList();
 } elseif ($action === 'ajax_users') {
