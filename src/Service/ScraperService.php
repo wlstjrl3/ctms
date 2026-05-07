@@ -34,7 +34,7 @@ class ScraperService
         foreach ($urls as $vicariateName => $url) {
             $html = $this->fetchUrl($url);
             if (!$html) continue;
-
+            
             $data = $this->parseParishList($html, $vicariateName);
             
             // Sync with DB
@@ -51,12 +51,31 @@ class ScraperService
 
     private function fetchUrl(string $url): ?string
     {
+        $rootDir = realpath(__DIR__ . '/../../') . '/';
+        $cookieFile = $rootDir . 'scratch/scraper_cookies.txt';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+        
+        $headers = [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control: no-cache',
+            'Pragma: no-cache',
+            'Upgrade-Insecure-Requests: 1'
+        ];
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
         $html = curl_exec($ch);
+        if (curl_errno($ch)) {
+            error_log('Scraper CURL Error: ' . curl_error($ch));
+        }
         curl_close($ch);
         return $html ?: null;
     }
@@ -64,6 +83,7 @@ class ScraperService
     private function parseParishList(string $html, string $vicariateName): array
     {
         $dom = new \DOMDocument();
+        // Handle UTF-8 encoding properly for DOMDocument
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
         $xpath = new \DOMXPath($dom);
 
@@ -72,25 +92,26 @@ class ScraperService
             'districts' => []
         ];
 
-        // Districts are usually in h4 or similar headers
-        // Based on analysis: <div class="parish-list-tit"> or headers containing "지구 본당"
-        $nodes = $xpath->query("//div[contains(@class, 'parish-list-tit')] | //h4[contains(text(), '지구')]");
+        // Districts can be in div, h3, or h4
+        $nodes = $xpath->query("//div[contains(@class, 'parish-list-tit')] | //h3[contains(text(), '지구')] | //h4[contains(text(), '지구')]");
         
         foreach ($nodes as $node) {
             $text = trim($node->nodeValue);
-            // Example: ○ 권선지구 본당 : 12개
+            // Example: ○ 권선지구 본당 : 12개 or 수지지구 본당 : 8개
             if (preg_match('/지구\s*본당\s*:\s*(\d+)개/', $text)) {
-                // Find district name - it's usually before "본당"
                 $districtName = trim(explode('본당', $text)[0]);
-                $districtName = ltrim($districtName, '○ '); // Remove leading circles and spaces
+                $districtName = ltrim($districtName, '○ ');
                 $parishList = [];
 
-                // Find the next sibling or container that has the parishes
-                // In Suwon site, it's usually the next div or a list
-                // Let's look for anchors with serial= in the vicinity
-                $container = $node->nextSibling;
-                while ($container && $container->nodeName !== 'div') {
-                    $container = $container->nextSibling;
+                // Find the container that has the parishes (usually the next div)
+                $container = null;
+                $curr = $node->nextSibling;
+                while ($curr) {
+                    if ($curr->nodeType === XML_ELEMENT_NODE && ($curr->nodeName === 'div' || $curr->nodeName === 'ul')) {
+                        $container = $curr;
+                        break;
+                    }
+                    $curr = $curr->nextSibling;
                 }
 
                 if ($container) {
