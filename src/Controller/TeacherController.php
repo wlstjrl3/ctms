@@ -26,6 +26,18 @@ class TeacherController
 
         // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
         $role = $session->getRole();
+        
+        // Refresh session org_cd for bondang accounts if needed (migration support)
+        if ($role === 'bondang') {
+            $user = App::getInstance()->db()->fetch(
+                "SELECT p.org_cd FROM users u JOIN parishes p ON u.parish_id = p.id WHERE u.login_id = ?",
+                [$session->get('user_id')]
+            );
+            if ($user && $user['org_cd']) {
+                $session->set('org_cd', (string)$user['org_cd']);
+            }
+        }
+
         $orgCd = ($role === 'bondang') ? (string)$session->get('org_cd', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
@@ -71,6 +83,18 @@ class TeacherController
 
         // casuwon/diocese 계정은 전체 교사 조회, bondang 계정은 자기 본당만
         $role = $session->getRole();
+
+        // Refresh session org_cd for bondang accounts if needed (migration support)
+        if ($role === 'bondang') {
+            $user = App::getInstance()->db()->fetch(
+                "SELECT p.org_cd FROM users u JOIN parishes p ON u.parish_id = p.id WHERE u.login_id = ?",
+                [$session->get('user_id')]
+            );
+            if ($user && $user['org_cd']) {
+                $session->set('org_cd', (string)$user['org_cd']);
+            }
+        }
+
         $orgCd = ($role === 'bondang') ? (string)$session->get('org_cd', '') : '';
         $page = (int)($_GET['p'] ?? 1);
         $pageSize = (int)($_GET['page_size'] ?? 15);
