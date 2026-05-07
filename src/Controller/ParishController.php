@@ -39,7 +39,7 @@ class ParishController
         $pageCount = (int)ceil($totalCount / $pageSize);
 
         $dioceses = $this->service->getDioceses(true);
-        $districts = []; // $this->service->getDistricts(null, true); - Temporarily disabled for 502 debug
+        $districts = $this->service->getDistricts(null, true); // Get all districts for filter options and management tab
         
         $title = '조직 코드 관리';
 

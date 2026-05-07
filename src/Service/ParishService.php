@@ -138,8 +138,10 @@ class ParishService
                     dist.ORG_NM as JIGU, 
                     dist.ORG_CD as JCODE, 
                     dist.UPPR_ORG_CD as vicariate_id,
+                    dist.ORG_CD as code,
                     dist.USE_YN,
-                    vic.ORG_NM as GYOGU
+                    vic.ORG_NM as GYOGU,
+                    vic.ORG_CD as GCODE
                 FROM ORG_INFO dist
                 LEFT JOIN ORG_INFO vic ON dist.UPPR_ORG_CD = vic.ORG_CD
                 WHERE dist.ORG_CD LIKE '1309%' {$useYnFilter}

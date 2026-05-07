@@ -27,12 +27,19 @@ $db->query("DELETE p1 FROM parishes p1
 
 // 3. Remove exact duplicates in ORG_INFO table
 echo "Removing duplicates in ORG_INFO table...\n";
+// For parishes (1311)
 $db->query("DELETE o1 FROM ORG_INFO o1
             INNER JOIN ORG_INFO o2 
-            WHERE o1.ORG_CD = o2.ORG_CD AND o1.REG_DT < o2.REG_DT");
+            WHERE o1.ORG_CD LIKE '1311%' AND o1.ORG_CD > o2.ORG_CD AND o1.ORG_NM = o2.ORG_NM AND o1.UPPR_ORG_CD = o2.UPPR_ORG_CD");
+
+// For districts (1309)
+echo "Cleaning up 137 districts...\n";
+$db->query("DELETE o1 FROM ORG_INFO o1
+            INNER JOIN ORG_INFO o2 
+            WHERE o1.ORG_CD LIKE '1309%' AND o1.ORG_CD > o2.ORG_CD AND o1.ORG_NM = o2.ORG_NM");
 
 // 4. Final verification
-$newParishCount = $db->fetch("SELECT COUNT(*) as cnt FROM parishes")['cnt'];
-echo "New parishes rows: $newParishCount (Removed " . ($parishCount - $newParishCount) . " rows)\n";
+$newOrgCount = $db->fetch("SELECT COUNT(*) as cnt FROM ORG_INFO")['cnt'];
+echo "New ORG_INFO rows: $newOrgCount (Removed " . ($orgCount - $newOrgCount) . " rows)\n";
 
 echo "=== Fix Completed. Please try accessing the page now. ===\n";
